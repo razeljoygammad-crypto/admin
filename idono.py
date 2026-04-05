@@ -2,16 +2,39 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 import math
+from flask import Flask
+import os
+from threading import Thread
 
+# =========================
+# FLASK KEEP-ALIVE SERVER
+# =========================
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "Bot is alive!"
+
+def run_web():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
+
+def keep_alive():
+    t = Thread(target=run_web)
+    t.daemon = True
+    t.start()
+
+# =========================
+# BOT SETUP
+# =========================
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # =========================
 # CONFIG
 # =========================
-ALLOWED_ROLE_IDS = [1466987521987711047]  # 🔁 PUT YOUR ROLE ID
+ALLOWED_ROLE_IDS = [1466987521987711047]
 OWNER_ID = 1409138196775702599
-
 
 # =========================
 # STORAGE
@@ -52,12 +75,11 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
             xp_had = int(self.current_xp.value or 0)
         except ValueError:
             return await interaction.response.send_message(
-                "⚠️ Numbers only!", ephemeral=True
+                "⚠️ Numbers only!",
+                ephemeral=True
             )
 
-        # =========================
-        # XP CALC
-        # =========================
+        # XP calculation
         total_xp = 0
         lvl = clvl
 
@@ -67,9 +89,6 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
 
         total_xp = max(0, total_xp - xp_had)
 
-        # =========================
-        # PACK VALUES
-        # =========================
         pack_values = {
             "mini": 125_000,
             "small": 250_000,
@@ -77,39 +96,11 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
             "vast": 1_000_000
         }
 
-        pack_key = self.pack.lower().replace(" pack", "")
+        pack_key = self.pack.lower()
         selected_xp = pack_values.get(pack_key, 0)
 
-        # =========================
-        # CALCULATIONS
-        # =========================
         enough_xp = total_xp <= selected_xp
-        packs_needed = math.ceil(total_xp / selected_xp) if selected_xp > 0 else 0
 
-        # =========================
-        # COUNT SYSTEM 🔥
-        # =========================
-        user_id = interaction.user.id
-
-        if user_id not in user_data:
-            user_data[user_id] = {
-                "total_uploads": 0,
-                "packs": {
-                    "mini": 0,
-                    "small": 0,
-                    "mediant": 0,
-                    "vast": 0
-                }
-            }
-
-        user_data[user_id]["total_uploads"] += 1
-
-        if pack_key in user_data[user_id]["packs"]:
-            user_data[user_id]["packs"][pack_key] += 1
-
-        # =========================
-        # RESULT STATUS
-        # =========================
         if enough_xp:
             color = discord.Color.red()
             status = "❌ Not enough XP!"
@@ -117,36 +108,17 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
             color = discord.Color.green()
             status = "✅ Enough XP!"
 
-        # =========================
-        # EMBED
-        # =========================
         embed = discord.Embed(
             title="XP Calculator Result",
             description=status,
             color=color
         )
 
-        embed.add_field(
-            name="📊 Levels",
-            value=f"{clvl} ➜ {tlvl}",
-            inline=False
-        )
+        embed.add_field(name="📊 Levels", value=f"{clvl} ➜ {tlvl}", inline=False)
+        embed.add_field(name="Total XP", value=f"{total_xp:,}", inline=False)
+        embed.add_field(name="📦 Selected Pack", value=f"{self.pack} ({selected_xp:,} XP)", inline=False)
 
-        embed.add_field(
-            name="Total XP",
-            value=f"{total_xp:,}",
-            inline=False
-        )
-
-        embed.add_field(
-            name="📦 Selected Pack",
-            value=f"{self.pack} ({selected_xp:,} XP)",
-            inline=False
-        )
-
-    
         await interaction.response.send_message(embed=embed)
-
 
 # =========================
 # BUTTON VIEW
@@ -160,13 +132,15 @@ class ImageButtons(discord.ui.View):
 
         if interaction.user != self.author:
             await interaction.response.send_message(
-                "❌ This is not your calculator!", ephemeral=True
+                "❌ This is not your calculator!",
+                ephemeral=True
             )
             return False
 
         if not has_allowed_role(interaction.user):
             await interaction.response.send_message(
-                "❌ You don't have permission!", ephemeral=True
+                "❌ You don't have permission!",
+                ephemeral=True
             )
             return False
 
@@ -213,9 +187,8 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-
 # =========================
-# SLASH COMMAND: STATUS
+# STATUS COMMAND
 # =========================
 @bot.tree.command(name="status", description="View user upload stats")
 async def status(interaction: discord.Interaction):
@@ -233,50 +206,47 @@ async def status(interaction: discord.Interaction):
         )
 
     PACK_PRICES = {
-     "mini": 7 ,
-     "small": 12 ,
-     "mediant": 17 ,
-     "vast": 30 
+        "mini": 7,
+        "small": 12,
+        "mediant": 17,
+        "vast": 30
     }
 
     embed = discord.Embed(
-     title="📊 User Upload Statistics",
-     color=discord.Color.blurple()
+        title="📊 User Upload Statistics",
+        color=discord.Color.blurple()
     )
 
     for user_id, data in user_data.items():
-     packs = data.get("packs", {})
- 
-     mini = packs.get("mini", 0)
-     small = packs.get("small", 0)
-     mediant = packs.get("mediant", 0)
-     vast = packs.get("vast", 0)
+        packs = data.get("packs", {})
 
-    earnings = (
-        mini * PACK_PRICES["mini"] +
-        small * PACK_PRICES["small"] +
-        mediant * PACK_PRICES["mediant"] +
-        vast * PACK_PRICES["vast"]
-    )
+        mini = packs.get("mini", 0)
+        small = packs.get("small", 0)
+        mediant = packs.get("mediant", 0)
+        vast = packs.get("vast", 0)
 
-    embed.add_field(
-        name=f"User {user_id}",
-        value=f"💰 Earnings: {earnings} 💎",
-        inline=False
-    )
+        earnings = (
+            mini * PACK_PRICES["mini"] +
+            small * PACK_PRICES["small"] +
+            mediant * PACK_PRICES["mediant"] +
+            vast * PACK_PRICES["vast"]
+        )
 
-    for user_id, data in user_data.items():
-        user = await bot.fetch_user(user_id)
-        packs = data["packs"]
+        try:
+            user = await bot.fetch_user(user_id)
+            username = user.name
+        except:
+            username = f"User {user_id}"
 
         embed.add_field(
-            name=f"{user.name}",
+            name=username,
             value=(
-                f"📊 Total Uploads: {data['total_uploads']}\n\n"
-                f"📦 Mini: {packs['mini']}\n"
-                f"📦 Small: {packs['small']}\n"
-                f"📦 Mediant: {packs['mediant']}\n"
-                f"📦 Vast: {packs['vast']}"
+                f"💰 Earnings: {earnings} 💎\n\n"
+                f"📊 Total Uploads: {data['total_uploads']}\n"
+                f"📦 Mini: {mini}\n"
+                f"📦 Small: {small}\n"
+                f"📦 Mediant: {mediant}\n"
+                f"📦 Vast: {vast}"
             ),
             inline=False
         )
@@ -284,23 +254,21 @@ async def status(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 # =========================
-# /clear COMMAND
+# CLEAR COMMAND
 # =========================
 @bot.tree.command(name="clear", description="Clear all stored data (Owner only)")
 async def clear(interaction: discord.Interaction):
 
-    # Owner check
     if interaction.user.id != OWNER_ID:
         return await interaction.response.send_message(
             "❌ Only the owner can use this command.",
             ephemeral=True
         )
 
-    # Clear data
-    global user_data
     user_data.clear()
+
     await interaction.response.send_message(
-        "✅ DONE COLLECT All DATA ARE CLEARED."
+        "✅ ALL DATA CLEARED."
     )
 
 # =========================
@@ -320,6 +288,6 @@ async def on_ready():
 # =========================
 # RUN BOT
 # =========================
-import os
-bot.run(os.getenv("TOKEN"))
-bot.run("token")
+if __name__ == "__main__":
+    keep_alive()
+    bot.run(os.getenv("TOKEN"))
