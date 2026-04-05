@@ -2,11 +2,12 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 import math
+import os
 from flask import Flask
 from threading import Thread
 
 # =========================
-# KEEP ALIVE (RENDER FIX)
+# KEEP ALIVE (RENDER)
 # =========================
 app = Flask(__name__)
 
@@ -15,17 +16,21 @@ def home():
     return "Bot is alive!"
 
 def run():
-    app.run(host="0.0.0.0", port=10000)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
 
 def keep_alive():
     t = Thread(target=run)
+    t.daemon = True
     t.start()
-
 
 # =========================
 # DISCORD BOT
 # =========================
-intents = discord.Intents.all()
+intents = discord.Intents.default()
+intents.message_content = True
+intents.members = True
+
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # =========================
@@ -57,7 +62,7 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
     start_lvl = discord.ui.TextInput(label='Current Level')
     current_xp = discord.ui.TextInput(label='Current XP', required=False)
     target_lvl = discord.ui.TextInput(label='Target Level')
-    end_xp = discord.ui.TextInput(label='End XP', required=False)
+    end_xp = discord.ui.TextInput(label='end XP', required=False)
 
     async def on_submit(self, interaction: discord.Interaction):
 
@@ -76,7 +81,6 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
                 "⚠️ Numbers only!", ephemeral=True
             )
 
-        # XP CALC
         total_xp = 0
         lvl = clvl
 
@@ -117,11 +121,10 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
         if pack_key in user_data[user_id]["packs"]:
             user_data[user_id]["packs"][pack_key] += 1
 
-        # EMBED
         embed = discord.Embed(
             title="XP Calculator Result",
-            color=discord.Color.green() if enough_xp else discord.Color.red(),
-            description="✅ Enough XP!" if enough_xp else "❌ Not enough XP!"
+            description="✅ Enough XP!" if enough_xp else "❌ Not enough XP!",
+            color=discord.Color.green() if enough_xp else discord.Color.red()
         )
 
         embed.add_field(name="📊 Levels", value=f"{clvl} ➜ {tlvl}", inline=False)
@@ -130,108 +133,119 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
 
         await interaction.response.send_message(embed=embed)
 
+# =========================
+# BUTTON VIEW
+# =========================
+class ImageButtons(discord.ui.View):
+    def __init__(self, author):
+        super().__init__(timeout=None)
+        self.author = author
+
+    async def interaction_check(self, interaction: discord.Interaction):
+        if interaction.user != self.author:
+            await interaction.response.send_message("❌ Not yours!", ephemeral=True)
+            return False
+        return True
+
+    @discord.ui.button(label="Mini Pack", style=discord.ButtonStyle.success)
+    async def mini(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(CalcModal("mini"))
+
+    @discord.ui.button(label="Small Pack", style=discord.ButtonStyle.success)
+    async def small(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(CalcModal("small"))
+
+    @discord.ui.button(label="Mediant Pack", style=discord.ButtonStyle.primary)
+    async def mediant(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(CalcModal("mediant"))
+
+    @discord.ui.button(label="Vast Pack", style=discord.ButtonStyle.danger)
+    async def vast(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(CalcModal("vast"))
 
 # =========================
-# STATUS COMMAND (FIXED)
+# IMAGE DETECTION
 # =========================
-@bot.tree.command(name="status", description="View user upload stats")
+@bot.event
+async def on_message(message):
+    if message.author.bot:
+        return
+
+    if not has_allowed_role(message.author):
+        return
+
+    if message.attachments:
+        for attachment in message.attachments:
+            if attachment.content_type and "image" in attachment.content_type:
+                await message.reply(
+                    "🖼️ Image detected!",
+                    view=ImageButtons(message.author)
+                )
+
+    await bot.process_commands(message)
+
+# =========================
+# STATUS COMMAND
+# =========================
+@bot.tree.command(name="status", description="View user stats")
 async def status(interaction: discord.Interaction):
 
-    if not has_allowed_role(interaction.user):
-        return await interaction.response.send_message(
-            "❌ You don't have permission.",
-            ephemeral=True
-        )
-
     if not user_data:
-        return await interaction.response.send_message(
-            "❌ No data recorded yet.",
-            ephemeral=True
-        )
+        return await interaction.response.send_message("No data yet.", ephemeral=True)
 
-    PACK_PRICES = {
-        "mini": 7,
-        "small": 12,
-        "mediant": 17,
-        "vast": 30
-    }
+    PACK_PRICES = {"mini": 7, "small": 12, "mediant": 17, "vast": 30}
 
-    embed = discord.Embed(
-        title="📊 User Upload Statistics",
-        color=discord.Color.blurple()
-    )
+    embed = discord.Embed(title="📊 Stats", color=discord.Color.blurple())
 
-    total_earnings_all = 0
+    total = 0
 
     for user_id, data in user_data.items():
         packs = data["packs"]
 
-        earnings = (
-            packs["mini"] * PACK_PRICES["mini"] +
-            packs["small"] * PACK_PRICES["small"] +
-            packs["mediant"] * PACK_PRICES["mediant"] +
-            packs["vast"] * PACK_PRICES["vast"]
+        earnings = sum(
+            packs[k] * PACK_PRICES[k] for k in PACK_PRICES
         )
 
-        total_earnings_all += earnings
+        total += earnings
 
         try:
             user = await bot.fetch_user(user_id)
             name = user.name
         except:
-            name = f"User {user_id}"
+            name = str(user_id)
 
         embed.add_field(
             name=name,
-            value=(
-                f"📊 Uploads: {data['total_uploads']}\n"
-                f"📦 Mini: {packs['mini']}\n"
-                f"📦 Small: {packs['small']}\n"
-                f"📦 Mediant: {packs['mediant']}\n"
-                f"📦 Vast: {packs['vast']}\n"
-                f"💰 Earnings: {earnings}"
-            ),
+            value=f"Uploads: {data['total_uploads']}\nEarnings: {earnings}",
             inline=False
         )
 
-    embed.add_field(
-        name="💎 TOTAL EARNINGS",
-        value=f"{total_earnings_all}",
-        inline=False
-    )
+    embed.add_field(name="💰 TOTAL", value=str(total), inline=False)
 
     await interaction.response.send_message(embed=embed)
-
 
 # =========================
 # CLEAR COMMAND
 # =========================
-@bot.tree.command(name="clear", description="Clear all stored data (Owner only)")
+@bot.tree.command(name="clear", description="Clear data")
 async def clear(interaction: discord.Interaction):
-
     if interaction.user.id != OWNER_ID:
-        return await interaction.response.send_message(
-            "❌ Only the owner can use this command.",
-            ephemeral=True
-        )
+        return await interaction.response.send_message("❌ Owner only", ephemeral=True)
 
-    global user_data
     user_data.clear()
-
-    await interaction.response.send_message("✅ All data cleared!")
-
+    await interaction.response.send_message("✅ Data cleared")
 
 # =========================
-# READY EVENT
+# READY
 # =========================
 @bot.event
 async def on_ready():
     await bot.tree.sync()
     print(f"Logged in as {bot.user}")
 
-
 # =========================
-# RUN BOT
+# RUN
 # =========================
 keep_alive()
-bot.run("YOUR_TOKEN_HERE")
+
+bot.run(os.getenv("TOKEN"))
