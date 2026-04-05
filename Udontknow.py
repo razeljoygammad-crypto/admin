@@ -140,7 +140,5 @@ async def status(interaction: discord.Interaction):
 async def on_ready():
     await bot.tree.sync()
     print(f"Logged in as {bot.user}")
-
-keep_alive()
-token = os.getenv('DISCORD_TOKEN')
+    
 client.run(token)
