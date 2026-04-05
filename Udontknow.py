@@ -21,7 +21,7 @@ collection = db["user_stats"]
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# =========================
+# ====================bot.run(TOKEN)=====
 # DATABASE UTILITIES
 # =========================
 async def get_user(user_id):
@@ -141,4 +141,6 @@ async def on_ready():
     await bot.tree.sync()
     print(f"Logged in as {bot.user}")
 
-bot.run(TOKEN)
+keep_alive()
+token = os.getenv('DISCORD_TOKEN')
+client.run(token)
