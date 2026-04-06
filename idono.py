@@ -197,6 +197,8 @@ class ImageButtons(discord.ui.View):
 # =========================
 # IMAGE DETECTION
 # =========================
+processed_messages = set()
+
 @bot.event
 async def on_message(message):
     if message.author.bot:
@@ -205,13 +207,19 @@ async def on_message(message):
     if not has_allowed_role(message.author):
         return
 
-    # Check if ANY attachment is an image
+    # 🚫 Prevent duplicate triggers
+    if message.id in processed_messages:
+        return
+
+    # ✅ Check if ANY attachment is an image
     has_image = any(
         attachment.content_type and "image" in attachment.content_type
         for attachment in message.attachments
     )
 
     if has_image:
+        processed_messages.add(message.id)
+
         await message.reply(
             "🖼️ Image detected!",
             view=ImageButtons(message.author)
