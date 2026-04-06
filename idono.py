@@ -330,27 +330,16 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
 
     await interaction.response.send_message(embed=embed)
 
-# =========================
+ # =========================
 # CLEAR COMMAND
 # =========================
-@bot.tree.command(name="clear_user", description="Clear a specific user's data (Owner only)")
-@app_commands.describe(user="The user whose data you want to clear")
-async def clear_user(interaction: discord.Interaction, user: discord.Member):
-    
+@bot.tree.command(name="clear", description="Clear data")
+async def clear(interaction: discord.Interaction):
     if interaction.user.id != OWNER_ID:
         return await interaction.response.send_message("❌ Owner only", ephemeral=True)
 
-    global user_data
-
-    user_id = str(user.id)
-
-    if user_id in user_data:
-        del user_data[user_id]
-        message = f"✅ Data for {user.mention} has been cleared."
-    else:
-        message = f"⚠️ No data found for {user.mention}."
-
-    await interaction.response.send_message(message, ephemeral=True)
+    user_data.clear()
+    await interaction.response.send_message("✅ Data cleared")
 
 # =========================
 # READY
