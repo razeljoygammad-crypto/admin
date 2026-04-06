@@ -210,34 +210,43 @@ class ImageButtons(discord.ui.View):
     async def vast(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(CalcModal("vast"))
 
+# Store processed message IDs
+processed_messages = set()
+
 # =========================
-# IMAGE DETECTION
+# IMAGE DETECTION (FIXED)
 # =========================
 @bot.event
 async def on_message(message):
     if message.author.bot:
         return
-        
-    # 🔴 CATEGORY CHECK HERE
+
+    # Category check
     if not is_allowed_channel(message.channel):
         return
 
-    if message.id in processed_messages:
-        return
-
+    # Role check
     if not has_allowed_role(message.author):
         return
 
-    if message.attachments:
-        for att in message.attachments:
-            if att.content_type and att.content_type.startswith("image"):
-                processed_messages.add(message.id)
+    # Prevent duplicate processing
+    if message.id in processed_messages:
+        return
 
-                await message.reply(
-                    "🖼️ Image detected!",
-                    view=ImageButtons(message.author)
-                )
-                break
+    # Only process ONCE per message
+    if not message.attachments:
+        return
+
+    # Check only the FIRST image
+    att = message.attachments[0]
+
+    if att.content_type and att.content_type.startswith("image"):
+        processed_messages.add(message.id)
+
+        await message.reply(
+            "🖼️ Image detected!",
+            view=ImageButtons(message.author)
+        )
 
     await bot.process_commands(message)
     
