@@ -35,7 +35,6 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # CONFIG
 # =========================
 ALLOWED_ROLE_IDS = [1466987521987711047]
-OWNER_ID = None
 
 # =========================
 # STORAGE
@@ -107,61 +106,38 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
         pack_key = self.pack.lower()
         selected_xp = pack_values.get(pack_key, 0)
 
-        # ✅ CORRECT LOGIC
+        # =========================
+        # LOGIC
+        # =========================
         enough_xp = selected_xp >= total_xp
-
-        # =========================
-        # SAVE DATA
-        # =========================
-        user_id = interaction.user.id
-
-        if user_id not in user_data:
-            user_data[user_id] = {
-                "total_uploads": 0,
-                "packs": {
-                    "mini": 0,
-                    "small": 0,
-                    "mediant": 0,
-                    "vast": 0
-                }
-            }
-
-        user_data[user_id]["total_uploads"] += 1
-        user_data[user_id]["packs"][pack_key] += 1
-
-        # =========================
-        # EMBED
-        # =========================
-        embed = discord.Embed(title="📊 XP Result")
 
         if enough_xp:
             color = discord.Color.green()
             status = "✅ Enough XP!"
-            extra = selected_xp - total_xp
-
-            embed.add_field(
-                name="🎉 Extra XP",
-                value=f"+{extra:,} XP remaining",
-                inline=False
-            )
         else:
             color = discord.Color.red()
             status = "❌ Not enough XP!"
-            missing = total_xp - selected_xp
 
-            embed.add_field(
-                name="⚠️ XP Missing",
-                value=f"{missing:,} XP needed",
-                inline=False
-            )
+        # =========================
+        # EMBED
+        # =========================
+        
+        embed.add_field(
+            name="📊 Levels",
+            value=f"{clvl} ➜ {tlvl}",
+            inline=False
+        )
+        embed = discord.Embed(
+            title="📊 XP Result",
+            description=status,
+            color=color
+        )
 
-        embed.color = color
-
-        embed.add_field(name="📊 Levels", value=f"{clvl} ➜ {tlvl}", inline=False)
-        embed.add_field(name="Total XP", value=f"{total_xp:,}", inline=False)
-        embed.add_field(name="📦 Pack", value=f"{self.pack} ({selected_xp:,} XP)", inline=False)
-
-        embed.description = status
+        embed.add_field(
+            name="📦 Pack",
+            value=f"{self.pack} ({selected_xp:,} XP)",
+            inline=False
+        )
 
         await interaction.response.send_message(embed=embed)
 
@@ -186,22 +162,18 @@ class ImageButtons(discord.ui.View):
 
     @discord.ui.button(label="Mini Pack", style=discord.ButtonStyle.success)
     async def mini(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.message.edit(view=None)
         await interaction.response.send_modal(CalcModal("mini"))
 
     @discord.ui.button(label="Small Pack", style=discord.ButtonStyle.success)
     async def small(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.message.edit(view=None)
         await interaction.response.send_modal(CalcModal("small"))
 
     @discord.ui.button(label="Mediant Pack", style=discord.ButtonStyle.primary)
     async def mediant(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.message.edit(view=None)
         await interaction.response.send_modal(CalcModal("mediant"))
 
     @discord.ui.button(label="Vast Pack", style=discord.ButtonStyle.danger)
     async def vast(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.message.edit(view=None)
         await interaction.response.send_modal(CalcModal("vast"))
 
 # =========================
@@ -242,11 +214,6 @@ async def on_message(message):
 # =========================
 @bot.event
 async def on_ready():
-    global OWNER_ID
-
-    app_info = await bot.application_info()
-    OWNER_ID = app_info.owner.id
-
     await bot.tree.sync()
     print(f"Logged in as {bot.user}")
 
