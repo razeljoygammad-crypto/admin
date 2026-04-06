@@ -192,9 +192,18 @@ async def on_message(message):
     if not has_allowed_role(message.author):
         return
 
+    # ✅ Prevent duplicate processing
+    if message.id in processed_messages:
+        return
+
+    processed_messages.add(message.id)
+
+    if not message.attachments:
+        return
+
     has_image = any(
-        attachment.content_type and attachment.content_type.startswith("image")
-        for attachment in message.attachments
+        att.content_type and att.content_type.startswith("image")
+        for att in message.attachments
     )
 
     if has_image:
