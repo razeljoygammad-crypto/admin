@@ -181,10 +181,12 @@ class ImageButtons(discord.ui.View):
     async def vast(self, interaction, button):
         await interaction.response.send_modal(CalcModal("vast"))
         
-processed_messages = set()
+
 # =========================
 # IMAGE DETECTION (FIXED)
 # =========================
+processed_messages = set()
+
 @bot.event
 async def on_message(message):
     if message.author.bot:
@@ -193,24 +195,27 @@ async def on_message(message):
     if not has_allowed_role(message.author):
         return
 
+    # ✅ Must have attachments
+    if not message.attachments:
+        return
+
+    # ✅ Must contain at least 1 image
+    if not any(
+        att.content_type and att.content_type.startswith("image")
+        for att in message.attachments
+    ):
+        return
+
+    # ❗ Prevent duplicate responses
     if message.id in processed_messages:
         return
 
     processed_messages.add(message.id)
 
-    if not message.attachments:
-        return
-
-    has_image = any(
-        att.content_type and att.content_type.startswith("image")
-        for att in message.attachments
+    await message.reply(
+        "🖼️ Image detected!",
+        view=ImageButtons(message.author)
     )
-
-    if has_image:
-        await message.reply(
-            "🖼️ Image detected!",
-            view=ImageButtons(message.author)
-        )
 
     await bot.process_commands(message)
     
