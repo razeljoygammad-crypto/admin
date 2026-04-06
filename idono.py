@@ -227,43 +227,43 @@ async def on_message(message):
 @app_commands.describe(user="User to check (owner only)")
 async def status(interaction: discord.Interaction, user: discord.User = None):
 
+    member = interaction.user
+
+    has_role = any(role.id in ALLOWED_ROLE_IDS for role in member.roles)
+
+    # Role OR Owner required
+    if not has_role and member.id != OWNER_ID:
+        return await interaction.response.send_message(
+            "❌ You don't have permission to use this command.",
+            ephemeral=True
+        )
+
+    # Owner can check others
+    if user is not None:
+        if member.id != OWNER_ID:
+            return await interaction.response.send_message(
+                "❌ Only the owner can check other users.",
+                ephemeral=True
+            )
+        target = user
+    else:
+        target = member
+
+    data = user_data.get(target.id)
+
+    if not data:
+        return await interaction.response.send_message(
+            "ℹ️ No data found.",
+            ephemeral=True
+        )
+
     PACK_PRICES = {"mini": 7, "small": 12, "mediant": 17, "vast": 30}
 
-    if user is None:
-        uid = interaction.user.id
-        data = user_data.get(uid)
-
-        if not data:
-            return await interaction.response.send_message(
-                "ℹ️ You have no data yet.",
-                ephemeral=True
-            )
-
-        target = interaction.user
-
-    else:
-        if interaction.user.id != OWNER_ID:
-            return await interaction.response.send_message(
-                "❌ Owner only",
-                ephemeral=True
-            )
-
-        uid = user.id
-        data = user_data.get(uid)
-
-        if not data:
-            return await interaction.response.send_message(
-                "ℹ️ That user has no data.",
-                ephemeral=True
-            )
-
-        target = user
-
-    packs = data.get("packs", {"mini": 0, "small": 0, "mediant": 0, "vast": 0})
+    packs = data.get("packs", {})
     uploads = data.get("total_uploads", 0)
     total_sales = data.get("total_sales", 0)
 
-    earnings = sum(packs[k] * PACK_PRICES[k] for k in PACK_PRICES)
+    earnings = sum(packs.get(k, 0) * PACK_PRICES[k] for k in PACK_PRICES)
 
     pack_text = "\n".join([f"{k.capitalize()}: {v}" for k, v in packs.items()])
 
@@ -277,10 +277,7 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
     embed.add_field(name="💰 Earnings", value=earnings, inline=False)
     embed.add_field(name="💵 Total Sales", value=total_sales, inline=False)
 
-    await interaction.response.send_message(
-        embed=embed,
-        ephemeral=(user is None)
-    )
+    await interaction.response.send_message(embed=embed)
 
 # =========================
 # CLEAR COMMAND
