@@ -137,12 +137,12 @@ class CalcModal(discord.ui.Modal):
         # =========================
         if selected_xp >= total_xp:
             status = "❌ Not Enough"
-            missing_xp = 0
-            extra_xp = selected_xp - total_xp
-        else:
-            status = "✅ Enough"
             missing_xp = total_xp - selected_xp
             extra_xp = 0
+        else:
+            status = "✅ Enough"
+            missing_xp = 0
+            extra_xp = selected_xp - total_xp
 
         # =========================
         # EMBED RESULT
