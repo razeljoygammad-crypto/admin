@@ -284,7 +284,7 @@ async def status(interaction: discord.Interaction, user: discord.Member = None):
         inline=False
     )
 
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=embed)
 
 # =========================
 # CLEAR (OWNER ONLY)
