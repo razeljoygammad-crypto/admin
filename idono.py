@@ -71,8 +71,8 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
 
         try:
             clvl = int(self.start_lvl.value)
-            tlvl = int(self.target_lvl.value)
             xp_had = int(self.current_xp.value or 0)
+            tlvl = int(self.target_lvl.value)
             end_xp = int(self.end_xp.value or 0)
             
         except ValueError:
