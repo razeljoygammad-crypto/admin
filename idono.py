@@ -35,17 +35,67 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # CONFIG
 # =========================
 ALLOWED_ROLE_IDS = [1466987521987711047]
+OWNER_ID = 123456789012345678  # 🔴 PUT YOUR DISCORD ID HERE
 
 # =========================
 # STORAGE
 # =========================
+user_data = {}
 processed_messages = set()
 
 # =========================
-# ROLE CHECK
+# CHECKS
 # =========================
 def has_allowed_role(member: discord.Member):
     return any(role.id in ALLOWED_ROLE_IDS for role in member.roles)
+
+def is_owner(user: discord.User):
+    return user.id == OWNER_ID
+
+# =========================
+# CLEAR ALL (OWNER ONLY)
+# =========================
+@bot.tree.command(name="clear", description="Clear ALL data (Owner only)")
+async def clear(interaction: discord.Interaction):
+
+    if not is_owner(interaction.user):
+        return await interaction.response.send_message(
+            "❌ Only the owner can use this command.",
+            ephemeral=True
+        )
+
+    user_data.clear()
+
+    await interaction.response.send_message(
+        "🧹 All data cleared!",
+        ephemeral=True
+    )
+
+# =========================
+# CLEAR SPECIFIC USER (OWNER ONLY)
+# =========================
+@bot.tree.command(name="clear_user", description="Clear a specific user's data (Owner only)")
+@app_commands.describe(user="User to clear")
+async def clear_user(interaction: discord.Interaction, user: discord.User):
+
+    if not is_owner(interaction.user):
+        return await interaction.response.send_message(
+            "❌ Only the owner can use this command.",
+            ephemeral=True
+        )
+
+    if user.id in user_data:
+        del user_data[user.id]
+
+        await interaction.response.send_message(
+            f"🧹 Cleared data for {user.mention}",
+            ephemeral=True
+        )
+    else:
+        await interaction.response.send_message(
+            "ℹ️ No data found for that user.",
+            ephemeral=True
+        )
 
 # =========================
 # MODAL
