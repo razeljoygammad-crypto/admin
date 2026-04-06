@@ -142,20 +142,20 @@ class ImageButtons(discord.ui.View):
         await interaction.message.edit(view=None)  # 🔥 removes buttons
         await interaction.response.send_modal(CalcModal("mini"))
 
-    @discord.ui.button(label="Mini Pack", style=discord.ButtonStyle.success)
+    @discord.ui.button(label="Small Pack", style=discord.ButtonStyle.success)
     async def mini(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.message.edit(view=None)  # 🔥 removes buttons
-        await interaction.response.send_modal(CalcModal("mini"))
+        await interaction.response.send_modal(CalcModal("small"))
 
-    @discord.ui.button(label="Mini Pack", style=discord.ButtonStyle.success)
+    @discord.ui.button(label="Mediant Pack", style=discord.ButtonStyle.success)
     async def mini(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.message.edit(view=None)  # 🔥 removes buttons
-        await interaction.response.send_modal(CalcModal("mini"))
+        await interaction.response.send_modal(CalcModal("mediant"))
 
-    @discord.ui.button(label="Mini Pack", style=discord.ButtonStyle.success)
+    @discord.ui.button(label="vast Pack", style=discord.ButtonStyle.success)
     async def mini(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.message.edit(view=None)  # 🔥 removes buttons
-        await interaction.response.send_modal(CalcModal("mini"))
+        await interaction.response.send_modal(CalcModal("vast"))
 
     
 # =========================
