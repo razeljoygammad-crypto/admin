@@ -35,7 +35,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # CONFIG
 # =========================
 ALLOWED_ROLE_IDS = [1466987521987711047]
-OWNER_ID = 123456789012345678  # 🔴 PUT YOUR DISCORD ID HERE
+OWNER_ID = 1465712809928036434  # 🔴 PUT YOUR DISCORD ID HERE
 
 # =========================
 # STORAGE
@@ -53,11 +53,10 @@ def is_owner(user: discord.User):
     return user.id == OWNER_ID
 
 # =========================
-# CLEAR ALL (OWNER ONLY)
+# CLEAR COMMANDS
 # =========================
 @bot.tree.command(name="clear", description="Clear ALL data (Owner only)")
 async def clear(interaction: discord.Interaction):
-
     if not is_owner(interaction.user):
         return await interaction.response.send_message(
             "❌ Only the owner can use this command.",
@@ -71,9 +70,6 @@ async def clear(interaction: discord.Interaction):
         ephemeral=True
     )
 
-# =========================
-# CLEAR SPECIFIC USER (OWNER ONLY)
-# =========================
 @bot.tree.command(name="clear_user", description="Clear a specific user's data (Owner only)")
 @app_commands.describe(user="User to clear")
 async def clear_user(interaction: discord.Interaction, user: discord.User):
@@ -135,9 +131,6 @@ class CalcModal(discord.ui.Modal):
                 ephemeral=True
             )
 
-        # =========================
-        # XP CALCULATION
-        # =========================
         total_xp = 0
         lvl = clvl
 
@@ -149,9 +142,6 @@ class CalcModal(discord.ui.Modal):
         total_xp -= end_xp
         total_xp = max(0, total_xp)
 
-        # =========================
-        # PACK VALUES
-        # =========================
         pack_values = {
             "mini": 125_000,
             "small": 250_000,
@@ -161,9 +151,6 @@ class CalcModal(discord.ui.Modal):
 
         selected_xp = pack_values.get(self.pack.lower(), 0)
 
-        # =========================
-        # LOGIC
-        # =========================
         enough_xp = selected_xp >= total_xp
 
         if enough_xp:
@@ -173,41 +160,25 @@ class CalcModal(discord.ui.Modal):
             color = discord.Color.green()
             status = "✅ Enough XP!"
 
-        # =========================
-        # EMBED
-        # =========================
         embed = discord.Embed(
             title="📊 XP Result",
             description=status,
             color=color
         )
-       
-        embed.add_field(
-            name="📊 Total XP",
-            value=f"{total_xp:,} XP",
-            inline=False
-        )
 
-        embed.add_field(
-            name="📊 Levels",
-            value=f"{clvl} ➜ {elvl}",
-            inline=False
-        )
-
-        embed.add_field(
-            name="📦 Pack",
-            value=f"{self.pack} ({selected_xp:,} XP)",
-            inline=False
-        )
+        embed.add_field(name="📊 Total XP", value=f"{total_xp:,} XP", inline=False)
+        embed.add_field(name="📊 Levels", value=f"{clvl} ➜ {elvl}", inline=False)
+        embed.add_field(name="📦 Pack", value=f"{self.pack} ({selected_xp:,} XP)", inline=False)
 
         if enough_xp:
+            )
             embed.add_field(
                 name="⚠️ XP Missing",
                 value=f"{total_xp - selected_xp:,} XP needed",
                 inline=False
             )
         else:
-             embed.add_field(
+            embed.add_field(
                 name="🎉 Extra XP",
                 value=f"+{selected_xp - total_xp:,} XP remaining",
                 inline=False
@@ -251,7 +222,7 @@ class ImageButtons(discord.ui.View):
         await interaction.response.send_modal(CalcModal("vast"))
 
 # =========================
-# IMAGE DETECTION
+# IMAGE DETECTION (FIXED)
 # =========================
 @bot.event
 async def on_message(message):
@@ -261,25 +232,31 @@ async def on_message(message):
     if not has_allowed_role(message.author):
         return
 
+    # 🔒 LOCK FIRST (prevents duplicate triggers)
     if message.id in processed_messages:
         return
 
-    has_image = any(
-        attachment.content_type and "image" in attachment.content_type
-        for attachment in message.attachments
+    processed_messages.add(message.id)
+
+    # Check for image
+    has_image = False
+    for attachment in message.attachments:
+        if attachment.content_type and attachment.content_type.startswith("image"):
+            has_image = True
+            break
+
+    if not has_image:
+        processed_messages.discard(message.id)
+        return
+
+    await message.reply(
+        "🖼️ Image detected!",
+        view=ImageButtons(message.author),
+        mention_author=False
     )
 
-    if has_image:
-        processed_messages.add(message.id)
-
-        await message.reply(
-            "🖼️ Image detected!",
-            view=ImageButtons(message.author),
-            mention_author=False
-        )
-
-        await asyncio.sleep(10)
-        processed_messages.discard(message.id)
+    await asyncio.sleep(10)
+    processed_messages.discard(message.id)
 
     await bot.process_commands(message)
 
