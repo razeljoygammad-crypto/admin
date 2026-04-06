@@ -192,12 +192,13 @@ async def on_message(message):
     if not has_allowed_role(message.author):
         return
 
-    # ✅ Prevent duplicate processing
+    # ✅ only process ONCE per message
     if message.id in processed_messages:
         return
 
     processed_messages.add(message.id)
 
+    # ✅ no attachments = exit early
     if not message.attachments:
         return
 
@@ -213,7 +214,7 @@ async def on_message(message):
         )
 
     await bot.process_commands(message)
-
+    
 # =========================
 # STATUS
 # =========================
