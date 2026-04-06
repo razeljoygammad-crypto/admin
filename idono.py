@@ -132,19 +132,11 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
             user_data[user_id]["packs"][pack_key] += 1
 
         # =========================
-        # RESULT STATUS
-        # =========================
-        if enough_xp:
-            color = discord.Color.red()
-            status = "❌ Not enough XP!"
-        else:
-            color = discord.Color.green()
-            status = "✅ Enough XP!"
-            
-        # =========================
         # EMBED
         # =========================
-        
+        color = discord.Color.green() if not enough_xp else discord.Color.red()
+        status = "✅ Enough XP!" if not enough_xp else "❌ Not enough XP!"
+
         embed = discord.Embed(
             title="XP Calculator Result",
             description=status,
