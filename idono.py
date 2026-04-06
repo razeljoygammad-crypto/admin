@@ -37,7 +37,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # =========================
 ALLOWED_CATEGORY_ID = 1467004864272793724  # 🔴 CHANGE THIS
 ALLOWED_ROLE_IDS = [1466987521987711047]
-interaction.user.id == OWNER_ID  # True
+OWNER_ID = 123456789012345678  # replace with your Discord ID
 
 # =========================
 # STORAGE
@@ -336,6 +336,8 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
     embed.add_field(name="📤 Uploads", value=f"{uploads:,}", inline=False)
     embed.add_field(name="📦 Packs", value=pack_text, inline=False)
     embed.add_field(name="💰 Earnings", value=f"{earnings:,}", inline=False)
+    total_sales = data.get("total_sales", 0)
+
     embed.add_field(name="💵 Total Sales", value=f"{total_sales:,}", inline=False)
 
     await interaction.response.send_message(embed=embed)
