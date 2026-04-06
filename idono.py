@@ -240,9 +240,9 @@ async def on_message(message):
 @bot.tree.command(name="status", description="View user stats")
 @app_commands.describe(user="User to check (owner only)")
 async def status(interaction: discord.Interaction, user: discord.User = None):
-    
-    # 🔴 CATEGORY CHECK
-    if interaction.channel.category_id != ALLOWED_CATEGORY_ID:
+
+    # 🔴 SAFE CATEGORY CHECK
+    if not interaction.channel or interaction.channel.category_id != ALLOWED_CATEGORY_ID:
         return await interaction.response.send_message(
             "❌ Use this inside the allowed category.",
             ephemeral=True
@@ -250,16 +250,28 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
 
     member = interaction.user
 
-    has_role = any(role.id in ALLOWED_ROLE_IDS for role in member.roles)
-
-    # Role OR Owner required
-    if not has_role and member.id != OWNER_ID:
-        return await interaction.response.send_message(
-            "❌ You don't have permission to use this command.",
-            ephemeral=True
+    # =========================
+    # 🔥 OWNER BYPASS (FIRST)
+    # =========================
+    if member.id == OWNER_ID:
+        pass  # owner skips everything
+    else:
+        # =========================
+        # ROLE CHECK (NON-OWNER ONLY)
+        # =========================
+        has_role = isinstance(member, discord.Member) and any(
+            role.id in ALLOWED_ROLE_IDS for role in member.roles
         )
 
-    # Owner can check others
+        if not has_role:
+            return await interaction.response.send_message(
+                "❌ You don't have permission to use this command.",
+                ephemeral=True
+            )
+
+    # =========================
+    # TARGET USER LOGIC
+    # =========================
     if user is not None:
         if member.id != OWNER_ID:
             return await interaction.response.send_message(
@@ -270,14 +282,20 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
     else:
         target = member
 
+    # =========================
+    # DATA CHECK
+    # =========================
     data = user_data.get(target.id)
 
     if not data:
         return await interaction.response.send_message(
-            "ℹ️ No data found.",
+            f"ℹ️ No data found for {target.name}.",
             ephemeral=True
         )
 
+    # =========================
+    # CALCULATIONS
+    # =========================
     PACK_PRICES = {"mini": 7, "small": 12, "mediant": 17, "vast": 30}
 
     packs = data.get("packs", {})
@@ -286,17 +304,20 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
 
     earnings = sum(packs.get(k, 0) * PACK_PRICES[k] for k in PACK_PRICES)
 
-    pack_text = "\n".join([f"{k.capitalize()}: {v}" for k, v in packs.items()])
+    pack_text = "\n".join([f"{k.capitalize()}: {v}" for k, v in packs.items()]) or "No packs yet"
 
+    # =========================
+    # EMBED
+    # =========================
     embed = discord.Embed(
         title=f"📊 Status of {target.name}",
         color=discord.Color.blurple()
     )
 
-    embed.add_field(name="📤 Uploads", value=uploads, inline=False)
+    embed.add_field(name="📤 Uploads", value=f"{uploads:,}", inline=False)
     embed.add_field(name="📦 Packs", value=pack_text, inline=False)
-    embed.add_field(name="💰 Earnings", value=earnings, inline=False)
-    embed.add_field(name="💵 Total Sales", value=total_sales, inline=False)
+    embed.add_field(name="💰 Earnings", value=f"{earnings:,}", inline=False)
+    embed.add_field(name="💵 Total Sales", value=f"{total_sales:,}", inline=False)
 
     await interaction.response.send_message(embed=embed)
 
