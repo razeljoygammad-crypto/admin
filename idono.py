@@ -328,7 +328,7 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
         inline=False
     )
 
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=embed)
 
 # =========================
 # /CLEAR
