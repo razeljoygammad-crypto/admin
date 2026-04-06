@@ -82,7 +82,9 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
                 ephemeral=True
             )
 
+        # =========================
         # XP CALCULATION
+        # =========================
         total_xp = 0
         lvl = clvl
 
@@ -92,7 +94,9 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
 
         total_xp = max(0, total_xp - xp_had - end_xp)
 
+        # =========================
         # PACK VALUES
+        # =========================
         pack_values = {
             "mini": 125_000,
             "small": 250_000,
@@ -103,9 +107,12 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
         pack_key = self.pack.lower()
         selected_xp = pack_values.get(pack_key, 0)
 
-        enough_xp = total_xp <= selected_xp
+        # ✅ CORRECT LOGIC
+        enough_xp = selected_xp >= total_xp
 
+        # =========================
         # SAVE DATA
+        # =========================
         user_id = interaction.user.id
 
         if user_id not in user_data:
@@ -120,25 +127,42 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
             }
 
         user_data[user_id]["total_uploads"] += 1
+        user_data[user_id]["packs"][pack_key] += 1
 
-        if pack_key in user_data[user_id]["packs"]:
-            user_data[user_id]["packs"][pack_key] += 1
-
+        # =========================
         # EMBED
-        color = discord.Color.red() if enough_xp else discord.Color.green()
-        status = "❌ Not enough XP!" if enough_xp else "✅ Enough XP!"
+        # =========================
+        embed = discord.Embed(title="📊 XP Result")
 
-        embed = discord.Embed(
-            title="📊 XP Result",
-            description=status,
-            color=color
-        )
+        if enough_xp:
+            color = discord.Color.green()
+            status = "✅ Enough XP!"
+            extra = selected_xp - total_xp
+
+            embed.add_field(
+                name="🎉 Extra XP",
+                value=f"+{extra:,} XP remaining",
+                inline=False
+            )
+        else:
+            color = discord.Color.red()
+            status = "❌ Not enough XP!"
+            missing = total_xp - selected_xp
+
+            embed.add_field(
+                name="⚠️ XP Missing",
+                value=f"{missing:,} XP needed",
+                inline=False
+            )
+
+        embed.color = color
 
         embed.add_field(name="📊 Levels", value=f"{clvl} ➜ {tlvl}", inline=False)
         embed.add_field(name="Total XP Needed", value=f"{total_xp:,}", inline=False)
         embed.add_field(name="📦 Pack", value=f"{self.pack} ({selected_xp:,} XP)", inline=False)
 
-        # ✅ FIXED RESPONSE (inside function)
+        embed.description = status
+
         await interaction.response.send_message(embed=embed)
 
 # =========================
@@ -150,17 +174,12 @@ class ImageButtons(discord.ui.View):
         self.author = author
 
     async def interaction_check(self, interaction: discord.Interaction):
-
         if interaction.user != self.author:
-            await interaction.response.send_message(
-                "❌ Not your calculator!", ephemeral=True
-            )
+            await interaction.response.send_message("❌ Not your calculator!", ephemeral=True)
             return False
 
         if not has_allowed_role(interaction.user):
-            await interaction.response.send_message(
-                "❌ No permission!", ephemeral=True
-            )
+            await interaction.response.send_message("❌ No permission!", ephemeral=True)
             return False
 
         return True
@@ -196,7 +215,6 @@ async def on_message(message):
     if not has_allowed_role(message.author):
         return
 
-    # Prevent duplicate triggers
     if message.id in processed_messages:
         return
 
@@ -214,83 +232,10 @@ async def on_message(message):
             mention_author=False
         )
 
-        # cleanup
         await asyncio.sleep(10)
         processed_messages.discard(message.id)
 
     await bot.process_commands(message)
-
-# =========================
-# STATUS COMMAND
-# =========================
-@bot.tree.command(name="status", description="View stats")
-@app_commands.describe(user="Check user")
-async def status(interaction: discord.Interaction, user: discord.Member = None):
-
-    if not has_allowed_role(interaction.user):
-        return await interaction.response.send_message(
-            "❌ No permission.", ephemeral=True
-        )
-
-    if user is None:
-        user = interaction.user
-
-    if user.id not in user_data:
-        return await interaction.response.send_message(
-            "❌ No data.", ephemeral=True
-        )
-
-    data = user_data[user.id]
-    packs = data["packs"]
-
-    PACK_PRICES = {
-        "mini": 7,
-        "small": 12,
-        "mediant": 17,
-        "vast": 30
-    }
-
-    earnings = (
-        packs["mini"] * PACK_PRICES["mini"] +
-        packs["small"] * PACK_PRICES["small"] +
-        packs["mediant"] * PACK_PRICES["mediant"] +
-        packs["vast"] * PACK_PRICES["vast"]
-    )
-
-    embed = discord.Embed(
-        title=f"📊 {user.name}'s Stats",
-        color=discord.Color.blurple()
-    )
-
-    embed.add_field(name="💰 Earnings", value=f"{earnings} 💎", inline=False)
-    embed.add_field(name="📊 Uploads", value=data["total_uploads"], inline=False)
-
-    embed.add_field(
-        name="📦 Packs",
-        value=(
-            f"Mini: {packs['mini']}\n"
-            f"Small: {packs['small']}\n"
-            f"Mediant: {packs['mediant']}\n"
-            f"Vast: {packs['vast']}"
-        ),
-        inline=False
-    )
-
-    await interaction.response.send_message(embed=embed)
-
-# =========================
-# CLEAR COMMAND
-# =========================
-@bot.tree.command(name="clear", description="Clear data")
-async def clear(interaction: discord.Interaction):
-
-    if OWNER_ID is not None and interaction.user.id != OWNER_ID:
-        return await interaction.response.send_message(
-            "❌ Owner only.", ephemeral=True
-        )
-
-    user_data.clear()
-    await interaction.response.send_message("✅ All data cleared.")
 
 # =========================
 # READY
