@@ -337,52 +337,41 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
 @app_commands.describe(user="The user whose data you want to clear")
 async def clear_user(interaction: discord.Interaction, user: discord.Member):
 
-    # Owner check
     if interaction.user.id != OWNER_ID:
         return await interaction.response.send_message(
             "❌ Only the owner can use this command.",
             ephemeral=True
         )
 
-    # Check if user exists in data
     if user.id not in user_data:
         return await interaction.response.send_message(
             "⚠️ This user has no data.",
             ephemeral=True
         )
 
-    # Optional confirmation
+    view = ConfirmClearView(interaction.user)
+
     await interaction.response.send_message(
-        f"⚠️ Are you sure you want to clear data for {user.mention}?\n"
-        "Reply with **YES** to confirm.",
+        f"⚠️ Are you sure you want to clear data for {user.mention}?",
+        view=view,
         ephemeral=True
     )
 
-    def check(m):
-        return m.author.id == interaction.user.id
+    await view.wait()
 
-    try:
-        msg = await bot.wait_for("message", check=check, timeout=15)
+    if view.value is True:
+        del user_data[user.id]
 
-        if msg.content.upper() == "YES":
-            del user_data[user.id]
-
-            await interaction.followup.send(
-                f"✅ Cleared data for {user.mention}.",
-                ephemeral=True
-            )
-
-            print(f"[CLEAR USER] {user} cleared by {interaction.user}")
-
-        else:
-            await interaction.followup.send(
-                "❌ Cancelled.",
-                ephemeral=True
-            )
-
-    except:
         await interaction.followup.send(
-            "❌ Timeout. Cancelled.",
+            f"✅ Cleared data for {user.mention}.",
+            ephemeral=True
+        )
+
+        print(f"[CLEAR USER] {user} cleared by {interaction.user}")
+
+    else:
+        await interaction.followup.send(
+            "❌ Cancelled.",
             ephemeral=True
         )
 
