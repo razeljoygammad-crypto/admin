@@ -131,6 +131,12 @@ class CalcModal(discord.ui.Modal):
             description=status,
             color=color
         )
+       
+        embed.add_field(
+            name="📊 Total XP",
+            value=f"{total_xp:,} XP",
+            inline=False
+        )
 
         embed.add_field(
             name="📊 Levels",
