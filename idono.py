@@ -7,7 +7,7 @@ import os
 from threading import Thread
 
 # =========================
-# FLASK KEEP-ALIVE SERVER
+# FLASK KEEP-ALIVE
 # =========================
 app = Flask(__name__)
 
@@ -34,10 +34,10 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # CONFIG
 # =========================
 ALLOWED_ROLE_IDS = [1466987521987711047]
-OWNER_ID = 0  # auto-set on ready
+OWNER_ID = None
 
 # =========================
-# STORAGE (PER USER)
+# STORAGE
 # =========================
 user_data = {}
 
@@ -60,7 +60,7 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
     current_xp = discord.ui.TextInput(label='Current XP', required=False)
     target_lvl = discord.ui.TextInput(label='Target Level')
     end_xp = discord.ui.TextInput(label='End XP', required=False)
-    
+
     async def on_submit(self, interaction: discord.Interaction):
 
         if not has_allowed_role(interaction.user):
@@ -71,17 +71,16 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
 
         try:
             clvl = int(self.start_lvl.value)
-            xp_had = int(self.current_xp.value or 0)
             tlvl = int(self.target_lvl.value)
+            xp_had = int(self.current_xp.value or 0)
             end_xp = int(self.end_xp.value or 0)
-            
         except ValueError:
             return await interaction.response.send_message(
                 "⚠️ Numbers only!", ephemeral=True
             )
 
         # =========================
-        # XP CALC
+        # XP CALCULATION
         # =========================
         total_xp = 0
         lvl = clvl
@@ -90,7 +89,8 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
             total_xp += 50 * (lvl * lvl + 2)
             lvl += 1
 
-        total_xp = max(0, total_xp - xp_had)
+        # subtract both current XP and end XP
+        total_xp = max(0, total_xp - xp_had - end_xp)
 
         # =========================
         # PACK VALUES
@@ -102,16 +102,16 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
             "vast": 1_000_000
         }
 
-        pack_key = self.pack.lower().replace(" pack", "")
+        pack_key = self.pack.lower()
         selected_xp = pack_values.get(pack_key, 0)
 
         # =========================
-        # CALCULATIONS
+        # CHECK
         # =========================
         enough_xp = total_xp <= selected_xp
 
         # =========================
-        # COUNT SYSTEM
+        # SAVE DATA
         # =========================
         user_id = interaction.user.id
 
@@ -134,8 +134,8 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
         # =========================
         # EMBED
         # =========================
-        color = discord.Color.green() if not enough_xp else discord.Color.red()
-        status = "✅ Enough XP!" if not enough_xp else "❌ Not enough XP!"
+        color = discord.Color.green() if enough_xp else discord.Color.red()
+        status = "✅ Enough XP!" if enough_xp else "❌ Not enough XP!"
 
         embed = discord.Embed(
             title="XP Calculator Result",
@@ -144,12 +144,8 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
         )
 
         embed.add_field(name="📊 Levels", value=f"{clvl} ➜ {tlvl}", inline=False)
-        embed.add_field(name="Total XP", value=f"{total_xp:,}", inline=False)
-        embed.add_field(
-            name="📦 Pack",
-            value=f"{self.pack} ({selected_xp:,} XP)",
-            inline=False
-        )
+        embed.add_field(name="Total XP Needed", value=f"{total_xp:,}", inline=False)
+        embed.add_field(name="📦 Pack", value=f"{self.pack} ({selected_xp:,} XP)", inline=False)
 
         await interaction.response.send_message(embed=embed)
 
@@ -221,8 +217,8 @@ async def on_message(message):
 # =========================
 # STATUS COMMAND
 # =========================
-@bot.tree.command(name="status", description="View user stats")
-@app_commands.describe(user="(Owner only) check another user")
+@bot.tree.command(name="status", description="View stats")
+@app_commands.describe(user="Check user")
 async def status(interaction: discord.Interaction, user: discord.Member = None):
 
     if not has_allowed_role(interaction.user):
@@ -233,11 +229,12 @@ async def status(interaction: discord.Interaction, user: discord.Member = None):
     if user is None:
         user = interaction.user
 
-    if interaction.user.id != OWNER_ID and interaction.user != user:
-        return await interaction.response.send_message(
-            "❌ You can only view your own data.",
-            ephemeral=True
-        )
+    if OWNER_ID is not None:
+        if interaction.user.id != OWNER_ID and user != interaction.user:
+            return await interaction.response.send_message(
+                "❌ You can only view your own data.",
+                ephemeral=True
+            )
 
     if user.id not in user_data:
         return await interaction.response.send_message(
@@ -255,10 +252,10 @@ async def status(interaction: discord.Interaction, user: discord.Member = None):
     }
 
     earnings = (
-        packs["mini"] * 7 +
-        packs["small"] * 12 +
-        packs["mediant"] * 17 +
-        packs["vast"] * 30
+        packs["mini"] * PACK_PRICES["mini"] +
+        packs["small"] * PACK_PRICES["small"] +
+        packs["mediant"] * PACK_PRICES["mediant"] +
+        packs["vast"] * PACK_PRICES["vast"]
     )
 
     embed = discord.Embed(
@@ -268,6 +265,7 @@ async def status(interaction: discord.Interaction, user: discord.Member = None):
 
     embed.add_field(name="💰 Earnings", value=f"{earnings} 💎", inline=False)
     embed.add_field(name="📊 Uploads", value=data["total_uploads"], inline=False)
+
     embed.add_field(
         name="📦 Packs",
         value=(
@@ -282,18 +280,17 @@ async def status(interaction: discord.Interaction, user: discord.Member = None):
     await interaction.response.send_message(embed=embed)
 
 # =========================
-# CLEAR (OWNER ONLY)
+# CLEAR
 # =========================
-@bot.tree.command(name="clear", description="Clear all data")
+@bot.tree.command(name="clear", description="Clear data")
 async def clear(interaction: discord.Interaction):
 
-    if interaction.user.id != OWNER_ID:
+    if OWNER_ID is not None and interaction.user.id != OWNER_ID:
         return await interaction.response.send_message(
             "❌ Owner only.", ephemeral=True
         )
 
     user_data.clear()
-
     await interaction.response.send_message("✅ All data cleared.")
 
 # =========================
