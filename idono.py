@@ -151,9 +151,14 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
         embed.add_field(name="Total XP Needed", value=f"{total_xp:,}", inline=False)
         embed.add_field(name="📦 Pack XP", value=f"{selected_xp:,}", inline=False)
 
+        # =========================
+        # FIXED LOGIC
+        # =========================
         if enough_xp:
+            missing_xp = total_xp - selected_xp
             embed.add_field(name="⚠️ Missing XP", value=f"{missing_xp:,}", inline=False)
         else:
+            extra_xp = selected_xp - total_xp
             embed.add_field(name="🎉 Extra XP", value=f"{extra_xp:,}", inline=False)
 
         await interaction.response.send_message(embed=embed)
