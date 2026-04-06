@@ -42,6 +42,7 @@ OWNER_ID = 1409138196775702599
 # STORAGE
 # =========================
 user_data = {}
+processed_messages = set()
 
 # =========================
 # ROLE CHECK
@@ -101,7 +102,17 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
         pack_key = self.pack.lower()
         selected_xp = pack_values.get(pack_key, 0)
 
-        enough_xp = total_xp <= selected_xp
+        # =========================
+        # EXTRA / MISSING XP LOGIC
+        # =========================
+        if total_xp <= selected_xp:
+            enough_xp = True
+            extra_xp = selected_xp - total_xp
+            missing_xp = 0
+        else:
+            enough_xp = False
+            missing_xp = total_xp - selected_xp
+            extra_xp = 0
 
         # =========================
         # SAVE DATA
@@ -137,8 +148,13 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
         )
 
         embed.add_field(name="📊 Levels", value=f"{clvl} ➜ {tlvl}", inline=False)
-        embed.add_field(name="Total XP", value=f"{total_xp:,}", inline=False)
-        embed.add_field(name="📦 Pack", value=f"{self.pack.capitalize()}", inline=False)
+        embed.add_field(name="Total XP Needed", value=f"{total_xp:,}", inline=False)
+        embed.add_field(name="📦 Pack XP", value=f"{selected_xp:,}", inline=False)
+
+        if enough_xp:
+            embed.add_field(name="⚠️ Missing XP", value=f"{missing_xp:,}", inline=False)
+        else:
+            embed.add_field(name="🎉 Extra XP", value=f"{extra_xp:,}", inline=False)
 
         await interaction.response.send_message(embed=embed)
 
@@ -180,17 +196,22 @@ async def on_message(message):
     if message.author.bot:
         return
 
+    if message.id in processed_messages:
+        return
+
     if not has_allowed_role(message.author):
         return
 
     if message.attachments:
         for att in message.attachments:
             if att.content_type and att.content_type.startswith("image"):
+                processed_messages.add(message.id)
+
                 await message.reply(
                     "🖼️ Image detected!",
                     view=ImageButtons(message.author)
                 )
-                break  # ✅ prevent multiple popups
+                break
 
     await bot.process_commands(message)
 
@@ -251,13 +272,11 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
     embed.add_field(name="💰 Earnings", value=earnings, inline=False)
     embed.add_field(name="💵 Total Sales", value=total_sales, inline=False)
 
-    if enough_xp:
-        embed.add_field(name="⚠️ Missing XP", value=f"{missing_xp:,}", inline=False)
-    else:
-        embed.add_field(name="🎉 Extra XP", value=f"{extra_xp:,}", inline=False)
-        
-    await interaction.response.send_message(embed=embed)
-    
+    await interaction.response.send_message(
+        embed=embed,
+        ephemeral=(user is None)
+    )
+
 # =========================
 # CLEAR COMMAND
 # =========================
