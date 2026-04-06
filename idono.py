@@ -300,7 +300,6 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
 
     packs = data.get("packs", {})
     uploads = data.get("total_uploads", 0)
-    total_sales = data.get("total_sales", 0)
 
     earnings = sum(packs.get(k, 0) * PACK_PRICES[k] for k in PACK_PRICES)
 
