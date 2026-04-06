@@ -132,38 +132,38 @@ class CalcModal(discord.ui.Modal, title='XP Calculator'):
 # =========================
 # BUTTONS
 # =========================
+processed_messages = set()
+
 class ImageButtons(discord.ui.View):
     def __init__(self, author):
         super().__init__(timeout=None)
         self.author = author
 
-    async def interaction_check(self, interaction):
+    async def interaction_check(self, interaction: discord.Interaction):
         if interaction.user != self.author:
             await interaction.response.send_message("❌ Not yours!", ephemeral=True)
             return False
         return True
 
     @discord.ui.button(label="Mini", style=discord.ButtonStyle.success)
-    async def mini(self, interaction, button):
+    async def mini(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(CalcModal("mini"))
 
     @discord.ui.button(label="Small", style=discord.ButtonStyle.success)
-    async def small(self, interaction, button):
+    async def small(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(CalcModal("small"))
 
     @discord.ui.button(label="Mediant", style=discord.ButtonStyle.primary)
-    async def mediant(self, interaction, button):
+    async def mediant(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(CalcModal("mediant"))
 
     @discord.ui.button(label="Vast", style=discord.ButtonStyle.danger)
-    async def vast(self, interaction, button):
+    async def vast(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(CalcModal("vast"))
 
-# =========================
-# IMAGE DETECTION
-# =========================
+
 @bot.event
-async def on_message(message):
+async def on_message(message: discord.Message):
 
     if message.author.bot:
         return
@@ -174,15 +174,28 @@ async def on_message(message):
     if not has_allowed_role(message.author):
         return
 
+    # ✅ STRONG DUPLICATE CHECK
     if message.id in processed_messages:
         return
 
-    if not any(att.content_type and "image" in att.content_type for att in message.attachments):
+    # ✅ CHECK IMAGE PROPERLY
+    if not message.attachments:
         return
 
+    # ✅ ONLY CHECK FIRST IMAGE (prevents multiple triggers)
+    first_attachment = message.attachments[0]
+
+    if not first_attachment.content_type or not first_attachment.content_type.startswith("image/"):
+        return
+
+    # ✅ MARK IMMEDIATELY (prevents double execution)
     processed_messages.add(message.id)
 
-    await message.reply("🖼️ Image detected!", view=ImageButtons(message.author))
+    # ✅ SEND ONLY ONE POPUP
+    await message.reply(
+        "🖼️ Image detected!",
+        view=ImageButtons(message.author)
+    )
 
     await bot.process_commands(message)
 
