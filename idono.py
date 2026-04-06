@@ -35,6 +35,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # =========================
 # CONFIG
 # =========================
+ALLOWED_CATEGORY_ID = 1467004864272793724  # 🔴 CHANGE THIS
 ALLOWED_ROLE_IDS = [1466987521987711047]
 OWNER_ID = 1409138196775702599
 
@@ -47,6 +48,9 @@ processed_messages = set()
 # =========================
 # ROLE CHECK
 # =========================
+def is_allowed_channel(channel: discord.abc.GuildChannel):
+    return channel.category_id == ALLOWED_CATEGORY_ID
+    
 def has_allowed_role(member: discord.Member):
     return any(role.id in ALLOWED_ROLE_IDS for role in member.roles)
 
@@ -65,7 +69,13 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
     end_xp = discord.ui.TextInput(label='End XP', required=False)
 
     async def on_submit(self, interaction: discord.Interaction):
-
+        
+         # 🔴 CATEGORY CHECK
+        if not is_allowed_channel(interaction.channel):
+            return await interaction.response.send_message(
+                "❌ This bot only works in the allowed category.",
+                ephemeral=True
+            )
         if not has_allowed_role(interaction.user):
             return await interaction.response.send_message(
                 "❌ You are not allowed to use this.",
@@ -200,6 +210,10 @@ class ImageButtons(discord.ui.View):
 async def on_message(message):
     if message.author.bot:
         return
+        
+    # 🔴 CATEGORY CHECK HERE
+    if not is_allowed_channel(message.channel):
+        return
 
     if message.id in processed_messages:
         return
@@ -226,6 +240,13 @@ async def on_message(message):
 @bot.tree.command(name="status", description="View user stats")
 @app_commands.describe(user="User to check (owner only)")
 async def status(interaction: discord.Interaction, user: discord.User = None):
+    
+    # 🔴 CATEGORY CHECK
+    if interaction.channel.category_id != ALLOWED_CATEGORY_ID:
+        return await interaction.response.send_message(
+            "❌ Use this inside the allowed category.",
+            ephemeral=True
+        )
 
     member = interaction.user
 
