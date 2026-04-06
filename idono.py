@@ -140,7 +140,7 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
          status = "✅ Enough XP!"
        else:
         color = discord.Color.red()
-        status = "✅ Enough XP!""❌ Not enough XP!"
+        status = "❌ Not enough XP!"
 
         embed.add_field(name="📊 Levels", value=f"{clvl} ➜ {tlvl}", inline=False)
         embed.add_field(name="Total XP Needed", value=f"{total_xp:,}", inline=False)
