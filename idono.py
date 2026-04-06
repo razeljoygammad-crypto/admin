@@ -119,7 +119,7 @@ class CalcModal(discord.ui.Modal):
         await interaction.response.send_message(embed=embed)
 
 # =========================
-# BUTTON VIEW
+# BUTTON VIEW (FIXED)
 # =========================
 class ImageButtons(discord.ui.View):
     def __init__(self, author):
@@ -138,29 +138,33 @@ class ImageButtons(discord.ui.View):
         return True
 
     @discord.ui.button(label="Mini Pack", style=discord.ButtonStyle.success)
-    async def mini(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.message.edit(view=None)  # 🔥 removes buttons
+    async def mini_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.message.edit(view=None)
         await interaction.response.send_modal(CalcModal("mini"))
 
     @discord.ui.button(label="Small Pack", style=discord.ButtonStyle.success)
-    async def mini(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.message.edit(view=None)  # 🔥 removes buttons
+    async def small_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.message.edit(view=None)
         await interaction.response.send_modal(CalcModal("small"))
 
-    @discord.ui.button(label="Mediant Pack", style=discord.ButtonStyle.success)
-    async def mini(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.message.edit(view=None)  # 🔥 removes buttons
+    @discord.ui.button(label="Mediant Pack", style=discord.ButtonStyle.primary)
+    async def mediant_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.message.edit(view=None)
         await interaction.response.send_modal(CalcModal("mediant"))
 
-    @discord.ui.button(label="vast Pack", style=discord.ButtonStyle.success)
-    async def mini(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.message.edit(view=None)  # 🔥 removes buttons
+    @discord.ui.button(label="Vast Pack", style=discord.ButtonStyle.danger)
+    async def vast_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.message.edit(view=None)
         await interaction.response.send_modal(CalcModal("vast"))
 
     
 # =========================
-# IMAGE DETECTION
+# IMAGE DETECTION (FIXED)
 # =========================
+import time
+
+last_trigger = {}
+
 @bot.event
 async def on_message(message):
 
@@ -176,13 +180,25 @@ async def on_message(message):
     if not has_allowed_role(message.author):
         return
 
-    if message.attachments:
-        for att in message.attachments:
-            if att.content_type and "image" in att.content_type:
-                await message.reply(
-                    "🖼️ Image detected!",
-                    view=ImageButtons(message.author)
-                )
+    # ✅ cooldown (prevents spam)
+    now = time.time()
+    if message.author.id in last_trigger:
+        if now - last_trigger[message.author.id] < 3:
+            return
+
+    # ✅ check once (NO LOOP)
+    has_image = any(
+        att.content_type and "image" in att.content_type
+        for att in message.attachments
+    )
+
+    if has_image:
+        last_trigger[message.author.id] = now
+
+        await message.reply(
+            "🖼️ Image detected!",
+            view=ImageButtons(message.author)
+        )
 
     await bot.process_commands(message)
 
