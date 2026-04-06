@@ -58,8 +58,8 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
 
     start_lvl = discord.ui.TextInput(label='Current Level')
     current_xp = discord.ui.TextInput(label='Current XP', required=False)
-    target_lvl = discord.ui.TextInput(label='Target Level')
-    end_lvl = discord.ui.TextInput(label='End Level', required=False)
+    end_lvl = discord.ui.TextInput(label='End Level')
+    end_XP = discord.ui.TextInput(label='End XP', required=False)
     
     async def on_submit(self, interaction: discord.Interaction):
 
@@ -73,7 +73,7 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
             clvl = int(self.start_lvl.value)
             tlvl = int(self.target_lvl.value)
             xp_had = int(self.current_xp.value or 0)
-            end_lvl = int(self.end_lvl.value or 0)
+            end_xp = int(self.end_xp.value or 0)
             
         except ValueError:
             return await interaction.response.send_message(
