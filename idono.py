@@ -50,6 +50,26 @@ def has_allowed_role(member: discord.Member):
     return any(role.id in ALLOWED_ROLE_IDS for role in member.roles)
 
 # =========================
+# FIX DATA FUNCTION
+# =========================
+def fix_user_data(data):
+    if "packs" not in data:
+        data["packs"] = {
+            "mini": 0,
+            "small": 0,
+            "mediant": 0,
+            "vast": 0
+        }
+
+    if "uploads" not in data:
+        data["uploads"] = 0
+
+    if "total_sales" not in data:
+        data["total_sales"] = 0
+
+    return data
+
+# =========================
 # MODAL
 # =========================
 class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
@@ -60,19 +80,13 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
 
     start_lvl = discord.ui.TextInput(label='Current Level')
     current_xp = discord.ui.TextInput(label='Current XP', required=False)
-
-    # ✅ UPDATED
     end_lvl = discord.ui.TextInput(label='End Level')
-
-    # ✅ NEW
     end_xp = discord.ui.TextInput(label='End XP (optional)', required=False)
 
     async def on_submit(self, interaction: discord.Interaction):
 
         if not has_allowed_role(interaction.user):
-            return await interaction.response.send_message(
-                "❌ Not allowed", ephemeral=True
-            )
+            return await interaction.response.send_message("❌ Not allowed", ephemeral=True)
 
         try:
             clvl = int(self.start_lvl.value)
@@ -80,9 +94,7 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
             xp_had = int(self.current_xp.value or 0)
             end_xp = int(self.end_xp.value or 0)
         except ValueError:
-            return await interaction.response.send_message(
-                "⚠️ Numbers only!", ephemeral=True
-            )
+            return await interaction.response.send_message("⚠️ Numbers only!", ephemeral=True)
 
         # =========================
         # XP CALCULATION
@@ -107,7 +119,9 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
         }
 
         selected_xp = pack_values[self.pack]
-        enough_xp = selected_xp >= total_
+
+        # ✅ FIXED LOGIC
+        enough_xp = total_xp >= selected_xp
       
         # =========================
         # EMBED
@@ -206,9 +220,8 @@ async def on_message(message):
     await bot.process_commands(message)
 
 # =========================
-# STATUS COMMAND
+# STATUS COMMAND (FIXED)
 # =========================
-
 @bot.tree.command(name="status", description="View stats (user or owner)")
 @app_commands.describe(user="User to check (owner only)")
 async def status(interaction: discord.Interaction, user: discord.User = None):
@@ -220,123 +233,47 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
         "vast": 30
     }
 
-    # =========================
     # USER MODE
-    # =========================
     if user is None:
         uid = str(interaction.user.id)
-
         data = user_data.get(uid)
+
         if not data:
-            return await interaction.response.send_message(
-                "ℹ️ You have no data yet.",
-                ephemeral=True
-            )
+            return await interaction.response.send_message("ℹ️ You have no data yet.", ephemeral=True)
 
         target_user = interaction.user
 
-    # =========================
     # OWNER MODE
-    # =========================
     else:
-        OWNER_ID = 1409138196775702599
-
         if interaction.user.id != OWNER_ID:
-            return await interaction.response.send_message(
-                "❌ Owner only can check other users.",
-                ephemeral=True
-            )
+            return await interaction.response.send_message("❌ Owner only can check other users.", ephemeral=True)
 
         uid = str(user.id)
-
         data = user_data.get(uid)
+
         if not data:
-            return await interaction.response.send_message(
-                "ℹ️ That user has no data.",
-                ephemeral=True
-            )
+            return await interaction.response.send_message("ℹ️ That user has no data.", ephemeral=True)
 
         target_user = user
 
-    # =========================
-    # FIX DATA
-    # =========================
     data = fix_user_data(data)
-
-    # =========================
-    # CALCULATE EARNINGS
-    # =========================
     packs = data["packs"]
 
-    earnings = sum(
-        packs[k] * PACK_PRICES[k] for k in PACK_PRICES
-    )
+    earnings = sum(packs[k] * PACK_PRICES[k] for k in PACK_PRICES)
 
-    # =========================
-    # EMBED
-    # =========================
     embed = discord.Embed(
         title=f"📊 Status of {target_user.name}",
         color=discord.Color.blurple()
     )
 
     embed.add_field(name="📤 Uploads", value=data["uploads"], inline=False)
-
-    embed.add_field(
-        name="📦 Packs",
-        value=str(packs),
-        inline=False
-    )
-
-    embed.add_field(
-        name="💰 Earnings",
-        value=earnings,
-        inline=False
-    )
-
-    embed.add_field(
-        name="💵 Total Sales",
-        value=data.get("total_sales", 0),
-        inline=False
-    )
+    embed.add_field(name="📦 Packs", value=str(packs), inline=False)
+    embed.add_field(name="💰 Earnings", value=earnings, inline=False)
+    embed.add_field(name="💵 Total Sales", value=data.get("total_sales", 0), inline=False)
 
     await interaction.response.send_message(embed=embed)
 
-
-    # =========================
-    # OWNER MODE (WITH USER)
-    # =========================
-    else:
-        if interaction.user.id != OWNER_ID:
-            return await interaction.response.send_message(
-                "❌ Only the owner can check other users.",
-                ephemeral=True
-            )
-
-        uid = str(user.id)
-        data = user_data.get(uid)
-
-        if not data:
-            return await interaction.response.send_message(
-                "ℹ️ No data found for that user.",
-                ephemeral=True
-            )
-
-        target_user = user
-
-    # =========================
-    # BUILD EMBED
-    # =========================
-    embed = discord.Embed(
-        title=f"📊 Status of {target_user.name}",
-        color=discord.Color.blurple()
-    )
-
-    embed.add_field(name="Uploads", value=data["uploads"], inline=False)
-    embed.add_field(name="Packs", value=str(data["packs"]), inline=False)
-
-    await interaction.response.send_message(embed=embed)
-
+    
 # =========================
 # CLEAR USER
 # =========================
