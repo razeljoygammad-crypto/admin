@@ -44,7 +44,7 @@ OWNER_ID = 1409138196775702599
 user_data = {}
 
 # =========================
-# CHECK
+# CHECK ROLE
 # =========================
 def has_allowed_role(member: discord.Member):
     return any(role.id in ALLOWED_ROLE_IDS for role in member.roles)
@@ -60,7 +60,12 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
 
     start_lvl = discord.ui.TextInput(label='Current Level')
     current_xp = discord.ui.TextInput(label='Current XP', required=False)
-    target_lvl = discord.ui.TextInput(label='Target Level')
+
+    # ✅ UPDATED
+    end_lvl = discord.ui.TextInput(label='End Level')
+
+    # ✅ NEW
+    end_xp = discord.ui.TextInput(label='End XP (optional)', required=False)
 
     async def on_submit(self, interaction: discord.Interaction):
 
@@ -71,22 +76,29 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
 
         try:
             clvl = int(self.start_lvl.value)
-            tlvl = int(self.target_lvl.value)
+            elvl = int(self.end_lvl.value)
             xp_had = int(self.current_xp.value or 0)
+            end_xp = int(self.end_xp.value or 0)
         except ValueError:
             return await interaction.response.send_message(
                 "⚠️ Numbers only!", ephemeral=True
             )
 
+        # =========================
+        # XP CALCULATION
+        # =========================
         total_xp = 0
         lvl = clvl
 
-        while lvl < tlvl:
+        while lvl < elvl:
             total_xp += 50 * (lvl * lvl + 2)
             lvl += 1
 
-        total_xp = max(0, total_xp - xp_had)
+        total_xp = max(0, total_xp - xp_had + end_xp)
 
+        # =========================
+        # PACK VALUES
+        # =========================
         pack_values = {
             "mini": 125_000,
             "small": 250_000,
@@ -95,10 +107,11 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
         }
 
         selected_xp = pack_values[self.pack]
-
         enough_xp = selected_xp >= total_xp
 
+        # =========================
         # SAVE DATA
+        # =========================
         uid = interaction.user.id
 
         if uid not in user_data:
@@ -110,29 +123,32 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
         user_data[uid]["uploads"] += 1
         user_data[uid]["packs"][self.pack] += 1
 
+        # =========================
+        # EMBED
+        # =========================
         embed = discord.Embed(
             title="📊 Result",
-            description="❌ Not enough XP if enough_xp else "✅ Enough XP!",
+            description="❌ Not enough XP!" if enough_xp else "✅ Enough XP!",
             color=discord.Color.red() if enough_xp else discord.Color.green()
         )
 
-        embed.add_field(name="Levels", value=f"{clvl} ➜ {tlvl}", inline=False)
+        embed.add_field(name="Levels", value=f"{clvl} ➜ {elvl}", inline=False)
         embed.add_field(name="Total XP", value=f"{total_xp:,}", inline=False)
         embed.add_field(name="Pack", value=self.pack, inline=False)
-        
-        # ✅ YOUR NEW LOGIC HERE
-        
-           embed.add_field(
-               name="⚠️ XP Missing",
-               value=f"{total_xp - selected_xp:,} XP needed",
-               inline=False
-           )
-       else:
-           embed.add_field(
-               name="🎉 Extra XP",
-               value=f"+{selected_xp - total_xp:,} XP remaining",
-               inline=False
- 
+
+        if enough_xp:
+            embed.add_field(
+                name="⚠️ XP Missing",
+                value=f"{total_xp - selected_xp:,} XP needed",
+                inline=False
+            )
+        else:
+            embed.add_field(
+                name="🎉 Extra XP",
+                value=f"+{selected_xp - total_xp:,} XP remaining",
+                inline=False
+            )
+
         await interaction.response.send_message(embed=embed)
 
 # =========================
@@ -176,7 +192,6 @@ async def on_message(message):
     if not has_allowed_role(message.author):
         return
 
-    # ✅ ONLY ONE CHECK (NO LOOP)
     has_image = any(
         attachment.content_type and attachment.content_type.startswith("image")
         for attachment in message.attachments
@@ -191,7 +206,7 @@ async def on_message(message):
     await bot.process_commands(message)
 
 # =========================
-# STATUS (SPECIFIC USER)
+# STATUS
 # =========================
 @bot.tree.command(name="status", description="Check a user's stats")
 @app_commands.describe(user="User to check")
@@ -227,9 +242,15 @@ async def clear_user(interaction: discord.Interaction, user: discord.User):
 
     if user.id in user_data:
         del user_data[user.id]
-        await interaction.response.send_message(f"🧹 Cleared {user.mention})
+        await interaction.response.send_message(
+            f"🧹 Cleared {user.mention}",
+            ephemeral=True
+        )
     else:
-        await interaction.response.send_message("ℹ️ No data)
+        await interaction.response.send_message(
+            "ℹ️ No data",
+            ephemeral=True
+        )
 
 # =========================
 # READY
