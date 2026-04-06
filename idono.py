@@ -88,11 +88,17 @@ class CalcModal(discord.ui.Modal):
 
     async def on_submit(self, interaction: discord.Interaction):
 
+        # =========================
+        # PERMISSION CHECK
+        # =========================
         if not has_allowed_role(interaction.user):
             return await interaction.response.send_message(
                 "❌ Not allowed.", ephemeral=True
             )
 
+        # =========================
+        # INPUT VALIDATION
+        # =========================
         try:
             clvl = int(self.start_lvl.value)
             xp_had = int(self.current_xp.value or 0)
@@ -102,6 +108,9 @@ class CalcModal(discord.ui.Modal):
                 "⚠️ Numbers only!", ephemeral=True
             )
 
+        # =========================
+        # XP CALCULATION
+        # =========================
         total_xp = 0
         lvl = clvl
 
@@ -111,6 +120,9 @@ class CalcModal(discord.ui.Modal):
 
         total_xp = max(0, total_xp - xp_had)
 
+        # =========================
+        # PACK VALUES
+        # =========================
         pack_values = {
             "mini": 125000,
             "small": 250000,
@@ -119,15 +131,50 @@ class CalcModal(discord.ui.Modal):
         }
 
         selected_xp = pack_values.get(self.pack, 0)
-        packs_needed = math.ceil(total_xp / selected_xp) if selected_xp else 0
 
-        embed = discord.Embed(title="XP Result", color=discord.Color.green())
-        embed.add_field(name="Total XP Needed", value=f"{total_xp:,}", inline=False)
-        embed.add_field(name="Pack", value=self.pack, inline=False)
-        embed.add_field(name="Packs Needed", value=packs_needed, inline=False)
+        # =========================
+        # STATUS LOGIC (IF / ELSE)
+        # =========================
+        if selected_xp >= total_xp:
+            status = "❌ Not Enough"
+            missing_xp = 0
+            extra_xp = selected_xp - total_xp
+        else:
+            status = "✅ Enough"
+            missing_xp = total_xp - selected_xp
+            extra_xp = 0
+
+        # =========================
+        # EMBED RESULT
+        # =========================
+        embed = discord.Embed(
+            title="🎯 XP Result",
+            color=discord.Color.orange()
+        )
+
+        embed.add_field(
+            name="📊 XP Result",
+            value=(
+                f"**Total AXP Got:** {total_xp:,}\n"
+                f"**Pack Selected:** {self.pack}\n"
+                f"**Status:** {status}\n"
+                f"**Missing XP:** {missing_xp:,}\n"
+                f"**Extra XP:** {extra_xp:,}"
+            ),
+            inline=False
+        )
+
+        # =========================
+        # FOOTER (DYNAMIC)
+        # =========================
+        if missing_xp > 0:
+            embed.set_footer(text="✅ You have enough XP!")
+        else:
+            embed.set_footer(text=f"👉 You are slightly short by {missing_xp:,} XP")
+            
 
         await interaction.response.send_message(embed=embed)
-
+        
 # =========================
 # BUTTON VIEW
 # =========================
