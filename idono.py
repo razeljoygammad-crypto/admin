@@ -180,7 +180,8 @@ class ImageButtons(discord.ui.View):
     @discord.ui.button(label="Vast", style=discord.ButtonStyle.danger)
     async def vast(self, interaction, button):
         await interaction.response.send_modal(CalcModal("vast"))
-
+        
+processed_messages = set()
 # =========================
 # IMAGE DETECTION (FIXED)
 # =========================
@@ -192,13 +193,11 @@ async def on_message(message):
     if not has_allowed_role(message.author):
         return
 
-    # ✅ only process ONCE per message
     if message.id in processed_messages:
         return
 
     processed_messages.add(message.id)
 
-    # ✅ no attachments = exit early
     if not message.attachments:
         return
 
