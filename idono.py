@@ -179,6 +179,7 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
 
         await interaction.response.send_message(embed=embed)
 
+
 # =========================
 # BUTTON VIEW
 # =========================
