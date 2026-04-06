@@ -189,39 +189,69 @@ async def on_message(message):
 # STATUS COMMAND
 # =========================
 @bot.tree.command(name="status", description="View user stats")
-async def status(interaction: discord.Interaction):
-
-    if not user_data:
-        return await interaction.response.send_message("No data yet.", ephemeral=True)
+@app_commands.describe(user="User to check (owner only)")
+async def status(interaction: discord.Interaction, user: discord.User = None):
 
     PACK_PRICES = {"mini": 7, "small": 12, "mediant": 17, "vast": 30}
 
-    embed = discord.Embed(title="📊 Stats", color=discord.Color.blurple())
+    # =========================
+    # USER MODE (self only)
+    # =========================
+    if user is None:
+        uid = str(interaction.user.id)
 
-    total = 0
+        data = user_data.get(uid)
+        if not data:
+            return await interaction.response.send_message(
+                "ℹ️ You have no data yet.",
+                ephemeral=True
+            )
 
-    for user_id, data in user_data.items():
-        packs = data["packs"]
+        target = interaction.user
 
-        earnings = sum(
-            packs[k] * PACK_PRICES[k] for k in PACK_PRICES
-        )
+    # =========================
+    # OWNER MODE (view others)
+    # =========================
+    else:
+        if interaction.user.id != OWNER_ID:
+            return await interaction.response.send_message(
+                "❌ Owner only",
+                ephemeral=True
+            )
 
-        total += earnings
+        uid = str(user.id)
 
-        try:
-            user = await bot.fetch_user(user_id)
-            name = user.name
-        except:
-            name = str(user_id)
+        data = user_data.get(uid)
+        if not data:
+            return await interaction.response.send_message(
+                "ℹ️ That user has no data.",
+                ephemeral=True
+            )
 
-        embed.add_field(
-            name=name,
-            value=f"Uploads: {data['total_uploads']}\nEarnings: {earnings}",
-            inline=False
-        )
+        target = user
 
-    embed.add_field(name="💰 TOTAL", value=str(total), inline=False)
+    # =========================
+    # FIX + SAFETY
+    # =========================
+    data = fix_user_data(data)
+    user_data[uid] = data  # keep data consistent
+
+    packs = data["packs"]
+
+    earnings = sum(packs[k] * PACK_PRICES[k] for k in PACK_PRICES)
+
+    # =========================
+    # EMBED
+    # =========================
+    embed = discord.Embed(
+        title=f"📊 Status of {target.name}",
+        color=discord.Color.blurple()
+    )
+
+    embed.add_field(name="📤 Uploads", value=data["uploads"], inline=False)
+    embed.add_field(name="📦 Packs", value=str(packs), inline=False)
+    embed.add_field(name="💰 Earnings", value=earnings, inline=False)
+    embed.add_field(name="💵 Total Sales", value=data.get("total_sales", 0), inline=False)
 
     await interaction.response.send_message(embed=embed)
 
