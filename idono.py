@@ -107,22 +107,8 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
         }
 
         selected_xp = pack_values[self.pack]
-        enough_xp = selected_xp >= total_xp
-
-        # =========================
-        # SAVE DATA
-        # =========================
-        uid = interaction.user.id
-
-        if uid not in user_data:
-            user_data[uid] = {
-                "uploads": 0,
-                "packs": {"mini": 0, "small": 0, "mediant": 0, "vast": 0}
-            }
-
-        user_data[uid]["uploads"] += 1
-        user_data[uid]["packs"][self.pack] += 1
-
+        enough_xp = selected_xp >= total_
+      
         # =========================
         # EMBED
         # =========================
@@ -219,28 +205,126 @@ async def on_message(message):
 
     await bot.process_commands(message)
     
-# =========================
-# STATUS
-# =========================
-@bot.tree.command(name="status", description="Check a user's stats")
-@app_commands.describe(user="User to check")
-async def status(interaction: discord.Interaction, user: discord.User):
+@bot.tree.command(name="status", description="View stats (user or owner)")
+@app_commands.describe(user="User to check (owner only)")
+async def status(interaction: discord.Interaction, user: discord.User = None):
 
-    data = user_data.get(user.id)
+    PACK_PRICES = {
+        "mini": 7,
+        "small": 12,
+        "mediant": 17,
+        "vast": 30
+    }
 
-    # ✅ OWNER OVERRIDE
-    if not data:
-        if interaction.user.id != OWNER_ID:
+    # =========================
+    # USER MODE
+    # =========================
+    if user is None:
+        uid = str(interaction.user.id)
+
+        data = user_data.get(uid)
+        if not data:
             return await interaction.response.send_message(
-                "ℹ️ No data found for this user.",
+                "ℹ️ You have no data yet.",
                 ephemeral=True
             )
-        else:
-            # Owner can still view empty data
-            data = {"uploads": 0, "packs": {"mini": 0, "small": 0, "mediant": 0, "vast": 0}}
 
+        target_user = interaction.user
+
+    # =========================
+    # OWNER MODE
+    # =========================
+    else:
+        OWNER_ID = 1409138196775702599
+
+        if interaction.user.id != OWNER_ID:
+            return await interaction.response.send_message(
+                "❌ Owner only can check other users.",
+                ephemeral=True
+            )
+
+        uid = str(user.id)
+
+        data = user_data.get(uid)
+        if not data:
+            return await interaction.response.send_message(
+                "ℹ️ That user has no data.",
+                ephemeral=True
+            )
+
+        target_user = user
+
+    # =========================
+    # FIX DATA
+    # =========================
+    data = fix_user_data(data)
+
+    # =========================
+    # CALCULATE EARNINGS
+    # =========================
+    packs = data["packs"]
+
+    earnings = sum(
+        packs[k] * PACK_PRICES[k] for k in PACK_PRICES
+    )
+
+    # =========================
+    # EMBED
+    # =========================
     embed = discord.Embed(
-        title=f"📊 Status of {user.name}",
+        title=f"📊 Status of {target_user.name}",
+        color=discord.Color.blurple()
+    )
+
+    embed.add_field(name="📤 Uploads", value=data["uploads"], inline=False)
+
+    embed.add_field(
+        name="📦 Packs",
+        value=str(packs),
+        inline=False
+    )
+
+    embed.add_field(
+        name="💰 Earnings",
+        value=earnings,
+        inline=False
+    )
+
+    embed.add_field(
+        name="💵 Total Sales",
+        value=data.get("total_sales", 0),
+        inline=False
+    )
+
+    await interaction.response.send_message(embed=embed)
+
+
+    # =========================
+    # OWNER MODE (WITH USER)
+    # =========================
+    else:
+        if interaction.user.id != OWNER_ID:
+            return await interaction.response.send_message(
+                "❌ Only the owner can check other users.",
+                ephemeral=True
+            )
+
+        uid = str(user.id)
+        data = user_data.get(uid)
+
+        if not data:
+            return await interaction.response.send_message(
+                "ℹ️ No data found for that user.",
+                ephemeral=True
+            )
+
+        target_user = user
+
+    # =========================
+    # BUILD EMBED
+    # =========================
+    embed = discord.Embed(
+        title=f"📊 Status of {target_user.name}",
         color=discord.Color.blurple()
     )
 
