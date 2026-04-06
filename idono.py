@@ -222,13 +222,18 @@ async def on_message(message):
 @app_commands.describe(user="User to check")
 async def status(interaction: discord.Interaction, user: discord.User):
 
-    if user.id not in user_data:
-        return await interaction.response.send_message(
-            "ℹ️ No data found for this user.",
-            ephemeral=True
-        )
+    data = user_data.get(user.id)
 
-    data = user_data[user.id]
+    # ✅ OWNER OVERRIDE
+    if not data:
+        if interaction.user.id != OWNER_ID:
+            return await interaction.response.send_message(
+                "ℹ️ No data found for this user.",
+                ephemeral=True
+            )
+        else:
+            # Owner can still view empty data
+            data = {"uploads": 0, "packs": {"mini": 0, "small": 0, "mediant": 0, "vast": 0}}
 
     embed = discord.Embed(
         title=f"📊 Status of {user.name}",
