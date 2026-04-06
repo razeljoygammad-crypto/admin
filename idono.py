@@ -46,6 +46,12 @@ user_data = {}
 processed_messages = set()
 
 # =========================
+# OWNER CHECK
+# =========================
+def is_owner(user: discord.abc.User):
+    return user.id == OWNER_ID
+
+# =========================
 # ROLE CHECK
 # =========================
 def is_allowed_channel(channel: discord.abc.GuildChannel):
@@ -233,35 +239,49 @@ async def on_message(message):
                 break
 
     await bot.process_commands(message)
-
+    
 # =========================
-# STATUS COMMAND
+# STATUS
 # =========================
 @bot.tree.command(name="status", description="View user stats")
 @app_commands.describe(user="User to check (owner only)")
 async def status(interaction: discord.Interaction, user: discord.User = None):
 
-    # 🔴 SAFE CATEGORY CHECK
+    # 🔴 CATEGORY CHECK
     if not interaction.channel or interaction.channel.category_id != ALLOWED_CATEGORY_ID:
         return await interaction.response.send_message(
             "❌ Use this inside the allowed category.",
             ephemeral=True
         )
 
-    member = interaction.user
+    # =========================
+    # OWNER CHECK
+    # =========================
+    is_owner = interaction.user.id == OWNER_ID
 
     # =========================
-    # 🔥 OWNER BYPASS (FIRST)
+    # ROLE CHECK (NON-OWNER)
     # =========================
-    if member.id == OWNER_ID:
-        pass  # owner skips everything
-    else:
-        # =========================
-        # ROLE CHECK (NON-OWNER ONLY)
-        # =========================
-        has_role = isinstance(member, discord.Member) and any(
-            role.id in ALLOWED_ROLE_IDS for role in member.roles
-        )
+    if not is_owner:
+
+        if interaction.guild is None:
+            return await interaction.response.send_message(
+                "❌ This command can only be used in a server.",
+                ephemeral=True
+            )
+
+        member = interaction.guild.get_member(interaction.user.id)
+
+        if member is None:
+            try:
+                member = await interaction.guild.fetch_member(interaction.user.id)
+            except:
+                return await interaction.response.send_message(
+                    "❌ Unable to verify your permissions.",
+                    ephemeral=True
+                )
+
+        has_role = any(role.id in ALLOWED_ROLE_IDS for role in member.roles)
 
         if not has_role:
             return await interaction.response.send_message(
@@ -273,14 +293,14 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
     # TARGET USER LOGIC
     # =========================
     if user is not None:
-        if member.id != OWNER_ID:
+        if not is_owner:
             return await interaction.response.send_message(
                 "❌ Only the owner can check other users.",
                 ephemeral=True
             )
         target = user
     else:
-        target = member
+        target = interaction.user
 
     # =========================
     # DATA CHECK
