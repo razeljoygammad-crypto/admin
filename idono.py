@@ -203,13 +203,17 @@ async def on_message(message):
     if not has_allowed_role(message.author):
         return
 
-    if message.attachments:
-        for attachment in message.attachments:
-            if attachment.content_type and "image" in attachment.content_type:
-                await message.reply(
-                    "🖼️ Image detected!",
-                    view=ImageButtons(message.author)
-                )
+    # Check if ANY attachment is an image
+    has_image = any(
+        attachment.content_type and "image" in attachment.content_type
+        for attachment in message.attachments
+    )
+
+    if has_image:
+        await message.reply(
+            "🖼️ Image detected!",
+            view=ImageButtons(message.author)
+        )
 
     await bot.process_commands(message)
 
