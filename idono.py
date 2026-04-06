@@ -5,6 +5,7 @@ import math
 from flask import Flask
 import os
 from threading import Thread
+import asyncio
 
 # =========================
 # FLASK KEEP-ALIVE
@@ -40,6 +41,7 @@ OWNER_ID = None
 # STORAGE
 # =========================
 user_data = {}
+processed_messages = set()
 
 # =========================
 # ROLE CHECK
@@ -76,12 +78,11 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
             end_xp = int(self.end_xp.value or 0)
         except ValueError:
             return await interaction.response.send_message(
-                "⚠️ Numbers only!", ephemeral=True
+                "⚠️ Numbers only!",
+                ephemeral=True
             )
 
-        # =========================
         # XP CALCULATION
-        # =========================
         total_xp = 0
         lvl = clvl
 
@@ -89,12 +90,9 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
             total_xp += 50 * (lvl * lvl + 2)
             lvl += 1
 
-        # subtract both current XP and end XP
         total_xp = max(0, total_xp - xp_had - end_xp)
 
-        # =========================
         # PACK VALUES
-        # =========================
         pack_values = {
             "mini": 125_000,
             "small": 250_000,
@@ -105,14 +103,9 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
         pack_key = self.pack.lower()
         selected_xp = pack_values.get(pack_key, 0)
 
-        # =========================
-        # CHECK
-        # =========================
         enough_xp = total_xp <= selected_xp
 
-        # =========================
         # SAVE DATA
-        # =========================
         user_id = interaction.user.id
 
         if user_id not in user_data:
@@ -131,27 +124,23 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
         if pack_key in user_data[user_id]["packs"]:
             user_data[user_id]["packs"][pack_key] += 1
 
-        # =========================
         # EMBED
-        # =========================
-        if enough_xp:
-           color = discord.Color.green()
-           status = "✅ Enough XP!"
-        else:
-            color = discord.Color.red()
-            status = "❌ Not enough XP!"
+        color = discord.Color.green() if enough_xp else discord.Color.red()
+        status = "✅ Enough XP!" if enough_xp else "❌ Not enough XP!"
 
         embed = discord.Embed(
-        title="📊 XP Result",
-        description=status,
-        color=color
+            title="📊 XP Result",
+            description=status,
+            color=color
         )
 
         embed.add_field(name="📊 Levels", value=f"{clvl} ➜ {tlvl}", inline=False)
         embed.add_field(name="Total XP Needed", value=f"{total_xp:,}", inline=False)
         embed.add_field(name="📦 Pack", value=f"{self.pack} ({selected_xp:,} XP)", inline=False)
 
-await interaction.response.send_message(embed=embed)
+        # ✅ FIXED RESPONSE (inside function)
+        await interaction.response.send_message(embed=embed)
+
 # =========================
 # BUTTON VIEW
 # =========================
@@ -199,8 +188,6 @@ class ImageButtons(discord.ui.View):
 # =========================
 # IMAGE DETECTION
 # =========================
-processed_messages = set()
-
 @bot.event
 async def on_message(message):
     if message.author.bot:
@@ -209,11 +196,10 @@ async def on_message(message):
     if not has_allowed_role(message.author):
         return
 
-    # 🚫 Prevent duplicate triggers
+    # Prevent duplicate triggers
     if message.id in processed_messages:
         return
 
-    # ✅ Check if ANY attachment is an image
     has_image = any(
         attachment.content_type and "image" in attachment.content_type
         for attachment in message.attachments
@@ -224,8 +210,13 @@ async def on_message(message):
 
         await message.reply(
             "🖼️ Image detected!",
-            view=ImageButtons(message.author)
+            view=ImageButtons(message.author),
+            mention_author=False
         )
+
+        # cleanup
+        await asyncio.sleep(10)
+        processed_messages.discard(message.id)
 
     await bot.process_commands(message)
 
@@ -243,13 +234,6 @@ async def status(interaction: discord.Interaction, user: discord.Member = None):
 
     if user is None:
         user = interaction.user
-
-    if OWNER_ID is not None:
-        if interaction.user.id != OWNER_ID and user != interaction.user:
-            return await interaction.response.send_message(
-                "❌ You can only view your own data.",
-                ephemeral=True
-            )
 
     if user.id not in user_data:
         return await interaction.response.send_message(
@@ -295,7 +279,7 @@ async def status(interaction: discord.Interaction, user: discord.Member = None):
     await interaction.response.send_message(embed=embed)
 
 # =========================
-# CLEAR
+# CLEAR COMMAND
 # =========================
 @bot.tree.command(name="clear", description="Clear data")
 async def clear(interaction: discord.Interaction):
