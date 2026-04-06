@@ -39,7 +39,6 @@ ALLOWED_ROLE_IDS = [1466987521987711047]
 # =========================
 # STORAGE
 # =========================
-user_data = {}
 processed_messages = set()
 
 # =========================
@@ -51,16 +50,21 @@ def has_allowed_role(member: discord.Member):
 # =========================
 # MODAL
 # =========================
-class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
+class CalcModal(discord.ui.Modal):
 
     def __init__(self, pack):
-        super().__init__()
+        super().__init__(title='XP & Pack Calculator')
         self.pack = pack
 
-    start_lvl = discord.ui.TextInput(label='Current Level')
-    current_xp = discord.ui.TextInput(label='Current XP', required=False)
-    target_lvl = discord.ui.TextInput(label='Target Level')
-    end_xp = discord.ui.TextInput(label='End XP', required=False)
+        self.start_lvl = discord.ui.TextInput(label='Current Level')
+        self.current_xp = discord.ui.TextInput(label='Current XP', required=False)
+        self.end_lvl = discord.ui.TextInput(label='End Level')
+        self.end_xp = discord.ui.TextInput(label='End XP', required=False)
+
+        self.add_item(self.start_lvl)
+        self.add_item(self.current_xp)
+        self.add_item(self.end_lvl)
+        self.add_item(self.end_xp)
 
     async def on_submit(self, interaction: discord.Interaction):
 
@@ -72,7 +76,7 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
 
         try:
             clvl = int(self.start_lvl.value)
-            tlvl = int(self.target_lvl.value)
+            elvl = int(self.end_lvl.value)
             xp_had = int(self.current_xp.value or 0)
             end_xp = int(self.end_xp.value or 0)
         except ValueError:
@@ -87,11 +91,13 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
         total_xp = 0
         lvl = clvl
 
-        while lvl < tlvl:
+        while lvl < elvl:
             total_xp += 50 * (lvl * lvl + 2)
             lvl += 1
 
-        total_xp = max(0, total_xp - xp_had - end_xp)
+        total_xp -= xp_had
+        total_xp -= end_xp
+        total_xp = max(0, total_xp)
 
         # =========================
         # PACK VALUES
@@ -103,8 +109,7 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
             "vast": 1_000_000
         }
 
-        pack_key = self.pack.lower()
-        selected_xp = pack_values.get(pack_key, 0)
+        selected_xp = pack_values.get(self.pack.lower(), 0)
 
         # =========================
         # LOGIC
@@ -129,7 +134,7 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
 
         embed.add_field(
             name="📊 Levels",
-            value=f"{clvl} ➜ {tlvl}",
+            value=f"{clvl} ➜ {elvl}",
             inline=False
         )
 
@@ -146,11 +151,12 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
                 inline=False
             )
         else:
-            embed.add_field(
+             embed.add_field(
                 name="🎉 Extra XP",
                 value=f"+{selected_xp - total_xp:,} XP remaining",
                 inline=False
-           )
+            )
+
         await interaction.response.send_message(embed=embed)
 
 # =========================
