@@ -204,7 +204,11 @@ async def on_message(message):
     )
 
     await bot.process_commands(message)
-    
+
+# =========================
+# STATUS COMMAND
+# =========================
+
 @bot.tree.command(name="status", description="View stats (user or owner)")
 @app_commands.describe(user="User to check (owner only)")
 async def status(interaction: discord.Interaction, user: discord.User = None):
