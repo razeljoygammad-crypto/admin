@@ -281,7 +281,8 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
 @app_commands.describe(user="User to clear")
 async def clear_user(interaction: discord.Interaction, user: discord.User):
 
-    if interaction.user.id != OWNER_ID:1409138196775702599
+    # ✅ FIXED
+    if interaction.user.id != OWNER_ID:
         return await interaction.response.send_message("❌ Owner only", ephemeral=True)
 
     if user.id in user_data:
