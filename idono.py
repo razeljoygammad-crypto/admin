@@ -1,7 +1,6 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-import math
 import os
 from flask import Flask
 from threading import Thread
@@ -97,12 +96,16 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
             "vast": 1_000_000
         }
 
+        pack_prices = {"mini": 7, "small": 12, "mediant": 17, "vast": 30}
+
         pack_key = self.pack.lower()
         selected_xp = pack_values.get(pack_key, 0)
 
         enough_xp = total_xp <= selected_xp
 
+        # =========================
         # SAVE DATA
+        # =========================
         user_id = interaction.user.id
 
         if user_id not in user_data:
@@ -113,7 +116,8 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
                     "small": 0,
                     "mediant": 0,
                     "vast": 0
-                }
+                },
+                "total_sales": 0
             }
 
         user_data[user_id]["total_uploads"] += 1
@@ -121,15 +125,20 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
         if pack_key in user_data[user_id]["packs"]:
             user_data[user_id]["packs"][pack_key] += 1
 
+        user_data[user_id]["total_sales"] += pack_prices.get(pack_key, 0)
+
+        # =========================
+        # EMBED
+        # =========================
         embed = discord.Embed(
             title="XP Calculator Result",
-            description="✅ Enough XP!" if enough_xp else "❌ Not enough XP!",
-            color=discord.Color.green() if enough_xp else discord.Color.red()
+            description="❌ Not enough XP!" if enough_xp else "✅ Enough XP!",
+            color=discord.Color.red() if enough_xp else discord.Color.green()
         )
 
         embed.add_field(name="📊 Levels", value=f"{clvl} ➜ {tlvl}", inline=False)
         embed.add_field(name="Total XP", value=f"{total_xp:,}", inline=False)
-        embed.add_field(name="📦 Pack", value=f"{self.pack}", inline=False)
+        embed.add_field(name="📦 Pack", value=f"{self.pack.capitalize()}", inline=False)
 
         await interaction.response.send_message(embed=embed)
 
@@ -174,14 +183,14 @@ async def on_message(message):
     if not has_allowed_role(message.author):
         return
 
-    # ✅ Check if message has ANY image
-    if any(att.content_type and att.content_type.startswith("image") for att in message.attachments):
-
-        # ❗ Only reply ONCE per message
-        await message.reply(
-            "🖼️ Image detected!",
-            view=ImageButtons(message.author)
-        )
+    if message.attachments:
+        for att in message.attachments:
+            if att.content_type and att.content_type.startswith("image"):
+                await message.reply(
+                    "🖼️ Image detected!",
+                    view=ImageButtons(message.author)
+                )
+                break  # ✅ prevent multiple popups
 
     await bot.process_commands(message)
 
@@ -194,13 +203,10 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
 
     PACK_PRICES = {"mini": 7, "small": 12, "mediant": 17, "vast": 30}
 
-    # =========================
-    # USER MODE (self only)
-    # =========================
     if user is None:
-        uid = str(interaction.user.id)
-
+        uid = interaction.user.id
         data = user_data.get(uid)
+
         if not data:
             return await interaction.response.send_message(
                 "ℹ️ You have no data yet.",
@@ -209,9 +215,6 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
 
         target = interaction.user
 
-    # =========================
-    # OWNER MODE (view others)
-    # =========================
     else:
         if interaction.user.id != OWNER_ID:
             return await interaction.response.send_message(
@@ -219,9 +222,9 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
                 ephemeral=True
             )
 
-        uid = str(user.id)
-
+        uid = user.id
         data = user_data.get(uid)
+
         if not data:
             return await interaction.response.send_message(
                 "ℹ️ That user has no data.",
@@ -230,31 +233,31 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
 
         target = user
 
-    # =========================
-    # FIX + SAFETY
-    # =========================
-    data = fix_user_data(data)
-    user_data[uid] = data  # keep data consistent
-
-    packs = data["packs"]
+    packs = data.get("packs", {"mini": 0, "small": 0, "mediant": 0, "vast": 0})
+    uploads = data.get("total_uploads", 0)
+    total_sales = data.get("total_sales", 0)
 
     earnings = sum(packs[k] * PACK_PRICES[k] for k in PACK_PRICES)
 
-    # =========================
-    # EMBED
-    # =========================
+    pack_text = "\n".join([f"{k.capitalize()}: {v}" for k, v in packs.items()])
+
     embed = discord.Embed(
         title=f"📊 Status of {target.name}",
         color=discord.Color.blurple()
     )
 
-    embed.add_field(name="📤 Uploads", value=data["uploads"], inline=False)
-    embed.add_field(name="📦 Packs", value=str(packs), inline=False)
+    embed.add_field(name="📤 Uploads", value=uploads, inline=False)
+    embed.add_field(name="📦 Packs", value=pack_text, inline=False)
     embed.add_field(name="💰 Earnings", value=earnings, inline=False)
-    embed.add_field(name="💵 Total Sales", value=data.get("total_sales", 0), inline=False)
+    embed.add_field(name="💵 Total Sales", value=total_sales, inline=False)
 
+    if enough_xp:
+        embed.add_field(name="⚠️ Missing XP", value=f"{missing_xp:,}", inline=False)
+    else:
+        embed.add_field(name="🎉 Extra XP", value=f"{extra_xp:,}", inline=False)
+        
     await interaction.response.send_message(embed=embed)
-
+    
 # =========================
 # CLEAR COMMAND
 # =========================
@@ -278,5 +281,4 @@ async def on_ready():
 # RUN
 # =========================
 keep_alive()
-
 bot.run(os.getenv("TOKEN"))
