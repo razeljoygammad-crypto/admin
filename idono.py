@@ -112,25 +112,25 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
         enough_xp = selected_xp >= total_xp
 
         if enough_xp:
-            color = discord.Color.green()
-            status = "✅ Enough XP!"
-        else:
             color = discord.Color.red()
             status = "❌ Not enough XP!"
+        else:
+            color = discord.Color.green()
+            status = "✅ Enough XP!"
 
         # =========================
         # EMBED
         # =========================
-        
-        embed.add_field(
-            name="📊 Levels",
-            value=f"{clvl} ➜ {tlvl}",
-            inline=False
-        )
         embed = discord.Embed(
             title="📊 XP Result",
             description=status,
             color=color
+        )
+
+        embed.add_field(
+            name="📊 Levels",
+            value=f"{clvl} ➜ {tlvl}",
+            inline=False
         )
 
         embed.add_field(
@@ -139,6 +139,18 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
             inline=False
         )
 
+        if enough_xp:
+            embed.add_field(
+                name="⚠️ XP Missing",
+                value=f"{total_xp - selected_xp:,} XP needed",
+                inline=False
+            )
+        else:
+            embed.add_field(
+                name="🎉 Extra XP",
+                value=f"+{selected_xp - total_xp:,} XP remaining",
+                inline=False
+           )
         await interaction.response.send_message(embed=embed)
 
 # =========================
