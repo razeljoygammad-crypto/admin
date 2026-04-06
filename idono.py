@@ -119,7 +119,7 @@ class CalcModal(discord.ui.Modal):
         await interaction.response.send_message(embed=embed)
 
 # =========================
-# BUTTON VIEW (FIXED)
+# BUTTON VIEW (FINAL SAFE)
 # =========================
 class ImageButtons(discord.ui.View):
     def __init__(self, author):
@@ -139,31 +139,44 @@ class ImageButtons(discord.ui.View):
 
     @discord.ui.button(label="Mini Pack", style=discord.ButtonStyle.success)
     async def mini_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.message.edit(view=None)
+        try:
+            await interaction.message.edit(view=None)
+        except:
+            pass
         await interaction.response.send_modal(CalcModal("mini"))
 
     @discord.ui.button(label="Small Pack", style=discord.ButtonStyle.success)
     async def small_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.message.edit(view=None)
+        try:
+            await interaction.message.edit(view=None)
+        except:
+            pass
         await interaction.response.send_modal(CalcModal("small"))
 
     @discord.ui.button(label="Mediant Pack", style=discord.ButtonStyle.primary)
     async def mediant_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.message.edit(view=None)
+        try:
+            await interaction.message.edit(view=None)
+        except:
+            pass
         await interaction.response.send_modal(CalcModal("mediant"))
 
     @discord.ui.button(label="Vast Pack", style=discord.ButtonStyle.danger)
     async def vast_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.message.edit(view=None)
+        try:
+            await interaction.message.edit(view=None)
+        except:
+            pass
         await interaction.response.send_modal(CalcModal("vast"))
 
-    
+
 # =========================
-# IMAGE DETECTION (FIXED)
+# IMAGE DETECTION (FINAL CLEAN)
 # =========================
 import time
+from collections import defaultdict
 
-last_trigger = {}
+last_trigger = defaultdict(float)
 
 @bot.event
 async def on_message(message):
@@ -172,36 +185,35 @@ async def on_message(message):
         return
 
     if not message.guild:
+        await bot.process_commands(message)
         return
 
-    if message.channel.category_id != ALLOWED_CATEGORY_ID:
-        return
+    # Only run logic if allowed
+    if (
+        message.channel.category_id == ALLOWED_CATEGORY_ID
+        and has_allowed_role(message.author)
+    ):
+        now = time.time()
 
-    if not has_allowed_role(message.author):
-        return
+        # cooldown
+        if now - last_trigger[message.author.id] >= 3:
 
-    # ✅ cooldown (prevents spam)
-    now = time.time()
-    if message.author.id in last_trigger:
-        if now - last_trigger[message.author.id] < 3:
-            return
+            has_image = any(
+                att.content_type and "image" in att.content_type.lower()
+                for att in message.attachments
+            )
 
-    # ✅ check once (NO LOOP)
-    has_image = any(
-        att.content_type and "image" in att.content_type
-        for att in message.attachments
-    )
+            if has_image:
+                last_trigger[message.author.id] = now
 
-    if has_image:
-        last_trigger[message.author.id] = now
+                await message.reply(
+                    f"🖼️ {len(message.attachments)} image(s) detected!",
+                    view=ImageButtons(message.author)
+                )
 
-        await message.reply(
-            "🖼️ Image detected!",
-            view=ImageButtons(message.author)
-        )
-
+    # Always allow commands
     await bot.process_commands(message)
-
+    
 # =========================
 # /STATUS
 # =========================
