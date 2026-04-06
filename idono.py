@@ -158,7 +158,7 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
         embed.color = color
 
         embed.add_field(name="📊 Levels", value=f"{clvl} ➜ {tlvl}", inline=False)
-        embed.add_field(name="Total XP Needed", value=f"{total_xp:,}", inline=False)
+        embed.add_field(name="Total XP", value=f"{total_xp:,}", inline=False)
         embed.add_field(name="📦 Pack", value=f"{self.pack} ({selected_xp:,} XP)", inline=False)
 
         embed.description = status
