@@ -139,20 +139,25 @@ class ImageButtons(discord.ui.View):
 
     @discord.ui.button(label="Mini Pack", style=discord.ButtonStyle.success)
     async def mini(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.message.edit(view=None)  # 🔥 removes buttons
         await interaction.response.send_modal(CalcModal("mini"))
 
-    @discord.ui.button(label="Small Pack", style=discord.ButtonStyle.success)
-    async def small(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(CalcModal("small"))
+    @discord.ui.button(label="Mini Pack", style=discord.ButtonStyle.success)
+    async def mini(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.message.edit(view=None)  # 🔥 removes buttons
+        await interaction.response.send_modal(CalcModal("mini"))
 
-    @discord.ui.button(label="Mediant Pack", style=discord.ButtonStyle.primary)
-    async def mediant(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(CalcModal("mediant"))
+    @discord.ui.button(label="Mini Pack", style=discord.ButtonStyle.success)
+    async def mini(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.message.edit(view=None)  # 🔥 removes buttons
+        await interaction.response.send_modal(CalcModal("mini"))
 
-    @discord.ui.button(label="Vast Pack", style=discord.ButtonStyle.danger)
-    async def vast(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(CalcModal("vast"))
+    @discord.ui.button(label="Mini Pack", style=discord.ButtonStyle.success)
+    async def mini(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.message.edit(view=None)  # 🔥 removes buttons
+        await interaction.response.send_modal(CalcModal("mini"))
 
+    
 # =========================
 # IMAGE DETECTION
 # =========================
