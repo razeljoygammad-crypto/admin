@@ -58,9 +58,9 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
 
     start_lvl = discord.ui.TextInput(label='Current Level')
     current_xp = discord.ui.TextInput(label='Current XP', required=False)
-    end_lvl = discord.ui.TextInput(label='End Level')
+    target_lvl = discord.ui.TextInput(label='Target Level')
     current_xp = discord.ui.TextInput(label='Current XP', required=False)
-
+    
     async def on_submit(self, interaction: discord.Interaction):
 
         if not has_allowed_role(interaction.user):
@@ -138,7 +138,7 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
         else:
             color = discord.Color.green()
             status = "✅ Enough XP!"
-
+            
         # =========================
         # EMBED
         # =========================
@@ -285,7 +285,7 @@ async def status(interaction: discord.Interaction, user: discord.Member = None):
         inline=False
     )
 
-    await interaction.response.send_message(embed=embed)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 # =========================
 # CLEAR (OWNER ONLY)
