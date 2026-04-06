@@ -37,7 +37,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # =========================
 ALLOWED_CATEGORY_ID = 1467004864272793724  # 🔴 CHANGE THIS
 ALLOWED_ROLE_IDS = [1466987521987711047]
-OWNER_ID = 123456789012345678  # replace with your Discord ID
+OWNER_ID = 1409138196775702599  # replace with your Discord ID
 
 # =========================
 # STORAGE
