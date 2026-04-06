@@ -156,11 +156,11 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
 # =========================
 class ImageButtons(discord.ui.View):
     def __init__(self, author):
-        super().__init__(timeout=None)
+        super().__init__(timeout=300)
         self.author = author
 
     async def interaction_check(self, interaction: discord.Interaction):
-        if interaction.user != self.author:
+        if self.author and interaction.user != self.author:
             await interaction.response.send_message("❌ Not yours!", ephemeral=True)
             return False
         return True
@@ -180,10 +180,9 @@ class ImageButtons(discord.ui.View):
     @discord.ui.button(label="Vast", style=discord.ButtonStyle.danger)
     async def vast(self, interaction, button):
         await interaction.response.send_modal(CalcModal("vast"))
-        
 
 # =========================
-# IMAGE DETECTION (FIXED)
+# IMAGE DETECTION
 # =========================
 processed_messages = set()
 
@@ -195,18 +194,12 @@ async def on_message(message):
     if not has_allowed_role(message.author):
         return
 
-    # ✅ Must have attachments
     if not message.attachments:
         return
 
-    # ✅ Must contain at least 1 image
-    if not any(
-        att.content_type and att.content_type.startswith("image")
-        for att in message.attachments
-    ):
+    if not any(att.content_type and att.content_type.startswith("image") for att in message.attachments):
         return
 
-    # ❗ Prevent duplicate responses
     if message.id in processed_messages:
         return
 
@@ -220,7 +213,7 @@ async def on_message(message):
     await bot.process_commands(message)
 
 # =========================
-# STATUS COMMAND (FIXED)
+# STATUS COMMAND
 # =========================
 @bot.tree.command(name="status", description="View stats (user or owner)")
 @app_commands.describe(user="User to check (owner only)")
@@ -233,7 +226,6 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
         "vast": 30
     }
 
-    # USER MODE
     if user is None:
         uid = str(interaction.user.id)
         data = user_data.get(uid)
@@ -243,10 +235,9 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
 
         target_user = interaction.user
 
-    # OWNER MODE
     else:
         if interaction.user.id != OWNER_ID:
-            return await interaction.response.send_message("❌ Owner only can check other users.", ephemeral=True)
+            return await interaction.response.send_message("❌ Owner only", ephemeral=True)
 
         uid = str(user.id)
         data = user_data.get(uid)
@@ -273,7 +264,6 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
 
     await interaction.response.send_message(embed=embed)
 
-    
 # =========================
 # CLEAR USER
 # =========================
@@ -281,7 +271,6 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
 @app_commands.describe(user="User to clear")
 async def clear_user(interaction: discord.Interaction, user: discord.User):
 
-    # ✅ FIXED
     if interaction.user.id != OWNER_ID:
         return await interaction.response.send_message("❌ Owner only", ephemeral=True)
 
