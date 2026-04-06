@@ -271,18 +271,24 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
 @app_commands.describe(user="User to clear")
 async def clear_user(interaction: discord.Interaction, user: discord.User):
 
+    # Owner check
     if interaction.user.id != OWNER_ID:
-        return await interaction.response.send_message("❌ Owner only", ephemeral=True)
+        return await interaction.response.send_message(
+            "❌ Owner only",
+            ephemeral=True
+        )
 
-    if user.id in user_data:
-        del user_data[user.id]
+    # FIX: use string key
+    removed = user_data.pop(str(user.id), None)
+
+    if removed:
         await interaction.response.send_message(
             f"🧹 Cleared {user.mention}",
             ephemeral=True
         )
     else:
         await interaction.response.send_message(
-            "ℹ️ No data",
+            "ℹ️ No data found for this user",
             ephemeral=True
         )
 
