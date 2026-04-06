@@ -19,9 +19,7 @@ def run():
     app.run(host="0.0.0.0", port=port)
 
 def keep_alive():
-    t = Thread(target=run)
-    t.daemon = True
-    t.start()
+    Thread(target=run, daemon=True).start()
 
 # =========================
 # DISCORD BOT
@@ -35,9 +33,9 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 # =========================
 # CONFIG
 # =========================
-ALLOWED_CATEGORY_ID = 1467004864272793724  # 🔴 CHANGE THIS
+ALLOWED_CATEGORY_ID = 1467004864272793724
 ALLOWED_ROLE_IDS = [1466987521987711047]
-OWNER_ID = 1409138196775702599  # replace with your Discord ID
+OWNER_ID = 1409138196775702599
 
 # =========================
 # STORAGE
@@ -46,24 +44,21 @@ user_data = {}
 processed_messages = set()
 
 # =========================
-# OWNER CHECK
+# CHECKS
 # =========================
-def is_owner(user: discord.abc.User):
-    return user.id == OWNER_ID
+def is_allowed_channel(channel):
+    return channel and getattr(channel, "category_id", None) == ALLOWED_CATEGORY_ID
 
-# =========================
-# ROLE CHECK
-# =========================
-def is_allowed_channel(channel: discord.abc.GuildChannel):
-    return channel.category_id == ALLOWED_CATEGORY_ID
-    
-def has_allowed_role(member: discord.Member):
+def has_allowed_role(member):
     return any(role.id in ALLOWED_ROLE_IDS for role in member.roles)
+
+def is_owner(user):
+    return user.id == OWNER_ID
 
 # =========================
 # MODAL
 # =========================
-class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
+class CalcModal(discord.ui.Modal, title='XP Calculator'):
 
     def __init__(self, pack):
         super().__init__()
@@ -72,30 +67,21 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
     start_lvl = discord.ui.TextInput(label='Current Level')
     current_xp = discord.ui.TextInput(label='Current XP', required=False)
     target_lvl = discord.ui.TextInput(label='Target Level')
-    end_xp = discord.ui.TextInput(label='End XP', required=False)
 
     async def on_submit(self, interaction: discord.Interaction):
-        
-         # 🔴 CATEGORY CHECK
+
         if not is_allowed_channel(interaction.channel):
-            return await interaction.response.send_message(
-                "❌ This bot only works in the allowed category.",
-                ephemeral=True
-            )
+            return await interaction.response.send_message("❌ Wrong category.", ephemeral=True)
+
         if not has_allowed_role(interaction.user):
-            return await interaction.response.send_message(
-                "❌ You are not allowed to use this.",
-                ephemeral=True
-            )
+            return await interaction.response.send_message("❌ No permission.", ephemeral=True)
 
         try:
             clvl = int(self.start_lvl.value)
             tlvl = int(self.target_lvl.value)
             xp_had = int(self.current_xp.value or 0)
-        except ValueError:
-            return await interaction.response.send_message(
-                "⚠️ Numbers only!", ephemeral=True
-            )
+        except:
+            return await interaction.response.send_message("⚠️ Numbers only!", ephemeral=True)
 
         total_xp = 0
         lvl = clvl
@@ -115,106 +101,70 @@ class CalcModal(discord.ui.Modal, title='XP & Pack Calculator'):
 
         pack_prices = {"mini": 7, "small": 12, "mediant": 17, "vast": 30}
 
-        pack_key = self.pack.lower()
-        selected_xp = pack_values.get(pack_key, 0)
+        selected_xp = pack_values.get(self.pack, 0)
 
-        # =========================
-        # EXTRA / MISSING XP LOGIC
-        # =========================
         if total_xp <= selected_xp:
-            enough_xp = True
+            result_text = "✅ Enough XP!"
             extra_xp = selected_xp - total_xp
-            missing_xp = 0
         else:
-            enough_xp = False
-            missing_xp = total_xp - selected_xp
-            extra_xp = 0
+            result_text = "❌ Not enough XP!"
+            extra_xp = total_xp - selected_xp
 
-        # =========================
         # SAVE DATA
-        # =========================
-        user_id = interaction.user.id
+        uid = interaction.user.id
 
-        if user_id not in user_data:
-            user_data[user_id] = {
-                "total_uploads": 0,
-                "packs": {
-                    "mini": 0,
-                    "small": 0,
-                    "mediant": 0,
-                    "vast": 0
-                },
-                "total_sales": 0
-            }
+        if uid not in user_data:
+            user_data[uid] = {"packs": {}, "total_uploads": 0, "total_sales": 0}
 
-        user_data[user_id]["total_uploads"] += 1
+        user_data[uid]["total_uploads"] += 1
+        user_data[uid]["packs"][self.pack] = user_data[uid]["packs"].get(self.pack, 0) + 1
+        user_data[uid]["total_sales"] += pack_prices.get(self.pack, 0)
 
-        if pack_key in user_data[user_id]["packs"]:
-            user_data[user_id]["packs"][pack_key] += 1
+        embed = discord.Embed(title="XP Result", description=result_text)
 
-        user_data[user_id]["total_sales"] += pack_prices.get(pack_key, 0)
-
-        # =========================
-        # EMBED
-        # =========================
-        embed = discord.Embed(
-            title="XP Calculator Result",
-            description="❌ Not enough XP!" if enough_xp else "✅ Enough XP!",
-            color=discord.Color.red() if enough_xp else discord.Color.green()
-        )
-
-        embed.add_field(name="📊 Levels", value=f"{clvl} ➜ {tlvl}", inline=False)
-        embed.add_field(name="Total XP Needed", value=f"{total_xp:,}", inline=False)
-        embed.add_field(name="📦 Pack XP", value=f"{selected_xp:,}", inline=False)
-
-        # =========================
-        # FIXED LOGIC
-        # =========================
-        if enough_xp:
-            missing_xp = total_xp - selected_xp
-            embed.add_field(name="⚠️ Missing XP", value=f"{missing_xp:,}", inline=False)
-        else:
-            extra_xp = selected_xp - total_xp
-            embed.add_field(name="🎉 Extra XP", value=f"{extra_xp:,}", inline=False)
+        embed.add_field(name="Levels", value=f"{clvl} → {tlvl}", inline=False)
+        embed.add_field(name="XP Needed", value=f"{total_xp:,}", inline=False)
+        embed.add_field(name="Pack XP", value=f"{selected_xp:,}", inline=False)
+        embed.add_field(name="Difference", value=f"{extra_xp:,}", inline=False)
 
         await interaction.response.send_message(embed=embed)
 
-
 # =========================
-# BUTTON VIEW
+# BUTTONS
 # =========================
 class ImageButtons(discord.ui.View):
     def __init__(self, author):
         super().__init__(timeout=None)
         self.author = author
 
-    async def interaction_check(self, interaction: discord.Interaction):
+    async def interaction_check(self, interaction):
         if interaction.user != self.author:
             await interaction.response.send_message("❌ Not yours!", ephemeral=True)
             return False
         return True
 
-    @discord.ui.button(label="Mini Pack", style=discord.ButtonStyle.success)
-    async def mini(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(label="Mini", style=discord.ButtonStyle.success)
+    async def mini(self, interaction, button):
         await interaction.response.send_modal(CalcModal("mini"))
 
-    @discord.ui.button(label="Small Pack", style=discord.ButtonStyle.success)
-    async def small(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(label="Small", style=discord.ButtonStyle.success)
+    async def small(self, interaction, button):
         await interaction.response.send_modal(CalcModal("small"))
 
-    @discord.ui.button(label="Mediant Pack", style=discord.ButtonStyle.primary)
-    async def mediant(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(label="Mediant", style=discord.ButtonStyle.primary)
+    async def mediant(self, interaction, button):
         await interaction.response.send_modal(CalcModal("mediant"))
 
-    @discord.ui.button(label="Vast Pack", style=discord.ButtonStyle.danger)
-    async def vast(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(label="Vast", style=discord.ButtonStyle.danger)
+    async def vast(self, interaction, button):
         await interaction.response.send_modal(CalcModal("vast"))
 
 # =========================
-# IMAGE DETECTION (FIXED)
+# IMAGE DETECTION
 # =========================
 @bot.event
 async def on_message(message):
+
     if message.author.bot:
         return
 
@@ -224,146 +174,45 @@ async def on_message(message):
     if not has_allowed_role(message.author):
         return
 
-    # Prevent duplicate processing
     if message.id in processed_messages:
         return
 
-    # Check if ANY attachment is an image
-    has_image = any(
-        att.content_type and att.content_type.startswith("image")
-        for att in message.attachments
-    )
-
-    if not has_image:
+    if not any(att.content_type and "image" in att.content_type for att in message.attachments):
         return
 
-    # Mark as processed BEFORE replying
     processed_messages.add(message.id)
 
-    # Optional memory cleanup
-    if len(processed_messages) > 1000:
-        processed_messages.clear()
-
-    # Reply ONLY ONCE
-    await message.reply(
-        "🖼️ Image detected!",
-        view=ImageButtons(message.author)
-    )
+    await message.reply("🖼️ Image detected!", view=ImageButtons(message.author))
 
     await bot.process_commands(message)
-    
+
 # =========================
 # STATUS
 # =========================
-@bot.tree.command(name="status", description="View user stats")
-@app_commands.describe(user="User to check (owner only)")
+@bot.tree.command(name="status")
+@app_commands.describe(user="Owner only")
 async def status(interaction: discord.Interaction, user: discord.User = None):
 
-    # 🔴 CATEGORY CHECK
-    if not interaction.channel or interaction.channel.category_id != ALLOWED_CATEGORY_ID:
-        return await interaction.response.send_message(
-            "❌ Use this inside the allowed category.",
-            ephemeral=True
-        )
+    if interaction.channel.category_id != ALLOWED_CATEGORY_ID:
+        return await interaction.response.send_message("❌ Wrong category.", ephemeral=True)
 
-    # =========================
-    # OWNER CHECK
-    # =========================
-    is_owner = interaction.user.id == OWNER_ID
+    if not has_allowed_role(interaction.user):
+        return await interaction.response.send_message("❌ No permission.", ephemeral=True)
 
-    # =========================
-    # ROLE CHECK (NON-OWNER)
-    # =========================
-    if not is_owner:
+    if user and not is_owner(interaction.user):
+        return await interaction.response.send_message("❌ Owner only.", ephemeral=True)
 
-        if interaction.guild is None:
-            return await interaction.response.send_message(
-                "❌ This command can only be used in a server.",
-                ephemeral=True
-            )
+    target = user if user else interaction.user
 
-        member = interaction.guild.get_member(interaction.user.id)
-
-        if member is None:
-            try:
-                member = await interaction.guild.fetch_member(interaction.user.id)
-            except:
-                return await interaction.response.send_message(
-                    "❌ Unable to verify your permissions.",
-                    ephemeral=True
-                )
-
-        has_role = any(role.id in ALLOWED_ROLE_IDS for role in member.roles)
-
-        if not has_role:
-            return await interaction.response.send_message(
-                "❌ You don't have permission to use this command.",
-                ephemeral=True
-            )
-
-    # =========================
-    # TARGET USER LOGIC
-    # =========================
-    if user is not None:
-        if not is_owner:
-            return await interaction.response.send_message(
-                "❌ Only the owner can check other users.",
-                ephemeral=True
-            )
-        target = user
-    else:
-        target = interaction.user
-
-    # =========================
-    # DATA CHECK
-    # =========================
     data = user_data.get(target.id)
-
     if not data:
-        return await interaction.response.send_message(
-            f"ℹ️ No data found for {target.name}.",
-            ephemeral=True
-        )
+        return await interaction.response.send_message("ℹ️ No data.", ephemeral=True)
 
-    # =========================
-    # CALCULATIONS
-    # =========================
-    PACK_PRICES = {"mini": 7, "small": 12, "mediant": 17, "vast": 30}
-
-    packs = data.get("packs", {})
-    uploads = data.get("total_uploads", 0)
-
-    earnings = sum(packs.get(k, 0) * PACK_PRICES[k] for k in PACK_PRICES)
-
-    pack_text = "\n".join([f"{k.capitalize()}: {v}" for k, v in packs.items()]) or "No packs yet"
-
-    # =========================
-    # EMBED
-    # =========================
-    embed = discord.Embed(
-        title=f"📊 Status of {target.name}",
-        color=discord.Color.blurple()
-    )
-
-    embed.add_field(name="📤 Uploads", value=f"{uploads:,}", inline=False)
-    embed.add_field(name="📦 Packs", value=pack_text, inline=False)
-    embed.add_field(name="💰 Earnings", value=f"{earnings:,}", inline=False)
-    total_sales = data.get("total_sales", 0)
-
-    embed.add_field(name="💵 Total Sales", value=f"{total_sales:,}", inline=False)
+    embed = discord.Embed(title=f"📊 {target.name}")
+    embed.add_field(name="Uploads", value=data["total_uploads"])
+    embed.add_field(name="Sales", value=data["total_sales"])
 
     await interaction.response.send_message(embed=embed)
-
-# =========================
-# CLEAR COMMAND
-# =========================
-@bot.tree.command(name="clear", description="Clear data")
-async def clear(interaction: discord.Interaction):
-    if interaction.user.id != OWNER_ID:
-        return await interaction.response.send_message("❌ Owner only", ephemeral=True)
-
-    user_data.clear()
-    await interaction.response.send_message("✅ Data cleared")
 
 # =========================
 # READY
