@@ -238,42 +238,48 @@ async def on_message(message):
 
 
 # =========================
-# SLASH COMMAND: STATUS
+# STATUS COMMAND
 # =========================
-@bot.tree.command(name="status", description="View user upload stats")
-async def status(interaction: discord.Interaction):
+@bot.tree.command(name="status", description="View stats")
+@app_commands.describe(user="Optional user (Owner only)")
+async def status(interaction: discord.Interaction, user: discord.Member = None):
 
     if not has_allowed_role(interaction.user):
         return await interaction.response.send_message(
-            "❌ You don't have permission.",
+            "❌ No permission.", ephemeral=True
+        )
+
+    # default = self
+    if user is None:
+        user = interaction.user
+
+    # only owner can view others
+    if interaction.user.id != OWNER_ID and user != interaction.user:
+        return await interaction.response.send_message(
+            "❌ You can only view your own data.",
             ephemeral=True
         )
 
-    if not user_data:
+    if user.id not in user_data:
         return await interaction.response.send_message(
-            "❌ No data recorded yet.",
+            f"❌ No data for {user.name}.",
             ephemeral=True
         )
+
+    data = user_data[user.id]
+    packs = data["packs"]
 
     PACK_PRICES = {
-     "mini": 7 ,
-     "small": 12 ,
-     "mediant": 17 ,
-     "vast": 30 
+        "mini": 7,
+        "small": 12,
+        "mediant": 17,
+        "vast": 30
     }
 
-    embed = discord.Embed(
-     title="📊 User Upload Statistics",
-     color=discord.Color.blurple()
-    )
-
-    for user_id, data in user_data.items():
-     packs = data.get("packs", {})
- 
-     mini = packs.get("mini", 0)
-     small = packs.get("small", 0)
-     mediant = packs.get("mediant", 0)
-     vast = packs.get("vast", 0)
+    mini = packs.get("mini", 0)
+    small = packs.get("small", 0)
+    mediant = packs.get("mediant", 0)
+    vast = packs.get("vast", 0)
 
     earnings = (
         mini * PACK_PRICES["mini"] +
@@ -282,27 +288,24 @@ async def status(interaction: discord.Interaction):
         vast * PACK_PRICES["vast"]
     )
 
-    embed.add_field(
-        name=f"User {user_id}",
-        value=f"💰 Earnings: {earnings} 💎",
-        inline=False
+    embed = discord.Embed(
+        title=f"📊 Stats for {user.name}",
+        color=discord.Color.blurple()
     )
 
-    for user_id, data in user_data.items():
-        user = await bot.fetch_user(user_id)
-        packs = data["packs"]
+    embed.add_field(name="💰 Earnings", value=f"{earnings} 💎", inline=False)
+    embed.add_field(name="📊 Uploads", value=data["total_uploads"], inline=False)
 
-        embed.add_field(
-            name=f"{user.name}",
-            value=(
-                f"📊 Total Uploads: {data['total_uploads']}\n\n"
-                f"📦 Mini: {packs['mini']}\n"
-                f"📦 Small: {packs['small']}\n"
-                f"📦 Mediant: {packs['mediant']}\n"
-                f"📦 Vast: {packs['vast']}"
-            ),
-            inline=False
-        )
+    embed.add_field(
+        name="📦 Packs",
+        value=(
+            f"Mini: {mini}\n"
+            f"Small: {small}\n"
+            f"Mediant: {mediant}\n"
+            f"Vast: {vast}"
+        ),
+        inline=False
+    )
 
     await interaction.response.send_message(embed=embed)
 
