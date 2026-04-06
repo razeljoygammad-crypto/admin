@@ -331,49 +331,26 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
     await interaction.response.send_message(embed=embed)
 
 # =========================
-# /CLEAR USER
+# CLEAR COMMAND
 # =========================
 @bot.tree.command(name="clear_user", description="Clear a specific user's data (Owner only)")
 @app_commands.describe(user="The user whose data you want to clear")
 async def clear_user(interaction: discord.Interaction, user: discord.Member):
-
+    
     if interaction.user.id != OWNER_ID:
-        return await interaction.response.send_message(
-            "❌ Only the owner can use this command.",
-            ephemeral=True
-        )
+        return await interaction.response.send_message("❌ Owner only", ephemeral=True)
 
-    if user.id not in user_data:
-        return await interaction.response.send_message(
-            "⚠️ This user has no data.",
-            ephemeral=True
-        )
+    global user_data
 
-    view = ConfirmClearView(interaction.user)
+    user_id = str(user.id)
 
-    await interaction.response.send_message(
-        f"⚠️ Are you sure you want to clear data for {user.mention}?",
-        view=view,
-        ephemeral=True
-    )
-
-    await view.wait()
-
-    if view.value is True:
-        del user_data[user.id]
-
-        await interaction.followup.send(
-            f"✅ Cleared data for {user.mention}.",
-            ephemeral=True
-        )
-
-        print(f"[CLEAR USER] {user} cleared by {interaction.user}")
-
+    if user_id in user_data:
+        del user_data[user_id]
+        message = f"✅ Data for {user.mention} has been cleared."
     else:
-        await interaction.followup.send(
-            "❌ Cancelled.",
-            ephemeral=True
-        )
+        message = f"⚠️ No data found for {user.mention}."
+
+    await interaction.response.send_message(message, ephemeral=True)
 
 # =========================
 # READY
