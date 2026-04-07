@@ -418,7 +418,7 @@ async def clear(interaction: discord.Interaction, user: discord.User):
 
         embed.set_footer(text=f"Cleared by {interaction.user.name}")
 
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed)
 
     else:
         await interaction.response.send_message(
