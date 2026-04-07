@@ -370,6 +370,107 @@ async def on_ready():
     print(f"Logged in as {bot.user}")
 
 # =========================
+# LEADERBOARD CHECK
+# =========================
+
+def is_owner_check(interaction: discord.Interaction) -> bool:
+    return interaction.user.id == OWNER_ID
+
+# =========================
+# /LEADERBOARD (OWNER ONLY + PROFIT)
+# =========================
+@bot.tree.command(name="leaderboard", description="View top users")
+@app_commands.check(is_owner_check)
+async def leaderboard(interaction: discord.Interaction):
+
+    if not user_data:
+        return await interaction.response.send_message(
+            "⚠️ No data available.",
+            ephemeral=True
+        )
+
+    PACK_PRICES = {
+        "mini": 7,
+        "small": 12,
+        "mediant": 17,
+        "vast": 30
+    }
+
+    # 💵 PROFIT PER PACK
+    PACK_PROFIT = {
+        "mini": 1,
+        "small": 2.25,
+        "mediant": 4,
+        "vast": 8
+    }
+
+    leaderboard_list = []
+
+    for user_id, data in user_data.items():
+        packs = data.get("packs", {})
+
+        earnings = sum(
+            packs.get(p, 0) * PACK_PRICES[p]
+            for p in PACK_PRICES
+        )
+
+        uploads = data.get("total_uploads", 0)
+
+        leaderboard_list.append((user_id, earnings, uploads, packs))
+
+    leaderboard_list.sort(key=lambda x: x[1], reverse=True)
+
+    top_users = leaderboard_list[:10]
+
+    embed = discord.Embed(
+        title="🏆 Leaderboard (Top 10)",
+        color=discord.Color.gold()
+    )
+
+    description = ""
+
+    for i, (user_id, earnings, uploads, packs) in enumerate(top_users, start=1):
+        user = bot.get_user(user_id)
+        name = user.name if user else f"User {user_id}"
+
+        medal = ["🥇", "🥈", "🥉"]
+        prefix = medal[i-1] if i <= 3 else f"#{i}"
+
+        # 📦 PACK COUNTS
+        mini = packs.get("mini", 0)
+        small = packs.get("small", 0)
+        mediant = packs.get("mediant", 0)
+        vast = packs.get("vast", 0)
+
+        # 💵 PROFIT CALCULATION
+        mini_profit = mini * PACK_PROFIT["mini"]
+        small_profit = small * PACK_PROFIT["small"]
+        mediant_profit = mediant * PACK_PROFIT["mediant"]
+        vast_profit = vast * PACK_PROFIT["vast"]
+
+        total_profit = mini_profit + small_profit + mediant_profit + vast_profit
+
+        description += (
+            f"{prefix} **{name}**\n"
+            f"💰 Earnings: {earnings} 💎 | 📊 {uploads}\n"
+            f"💵 Profit: {total_profit} 💎\n\n"
+            f"🧹 Mini:{mini} Small:{small} Mediant:{mediant} Vast:{vast}\n"
+        )
+
+    embed.description = description or "No data."
+
+    await interaction.response.send_message(embed=embed)
+
+
+# =========================
+# ERROR HANDLER (HIDE COMMAND)
+# =========================
+@leaderboard.error
+async def leaderboard_error(interaction: discord.Interaction, error):
+    if isinstance(error, app_commands.errors.CheckFailure):
+        return  # silently ignore
+
+# =========================
 # RUN
 # =========================
 if __name__ == "__main__":
