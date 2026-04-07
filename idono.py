@@ -331,7 +331,7 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
     await interaction.response.send_message(embed=embed)
     
 # =========================
-# /CLEAR USER
+# /CLEAR USER (COOL VERSION)
 # =========================
 @bot.tree.command(name="clear", description="Clear a specific user's data (Owner only)")
 @app_commands.describe(user="The user whose data you want to clear")
@@ -383,22 +383,42 @@ async def clear(interaction: discord.Interaction, user: discord.User):
 
             if count > 0:
                 pack_lines += (
-                    f"📦 {pack.capitalize()}: {count}\n"
-                    f"   💰 Earnings: {clean_earnings}\n"
-                    f"   💵 Profit: {clean_profit}\n\n"
+                    f"📦 **{pack.capitalize()}**: {count}\n"
+                    f"  💰 Earnings: `{clean_earnings}`\n"
+                    f"  💵 Profit: `{clean_profit}`\n\n"
                 )
 
         # delete data
         del user_data[user.id]
 
-        await interaction.response.send_message(
-            f"✅ Cleared data for {user.name}\n\n"
-            f"{pack_lines}"
-            f"🧹 Total Clean: {total_clean}\n"
-            f"💰 Total Earnings: {total_earnings}\n"
-            f"💵 Total Profit: {total_profit}",
-            ephemeral=True
+        # =========================
+        # EMBED OUTPUT
+        # =========================
+        embed = discord.Embed(
+            title="🧹 Data Cleared Successfully",
+            description=f"👤 **User:** {user.mention}\n\n📦 **Pack Breakdown:**",
+            color=discord.Color.dark_red()
         )
+
+        embed.add_field(
+            name="📊 Pack Details",
+            value=pack_lines if pack_lines else "No packs found.",
+            inline=False
+        )
+
+        embed.add_field(
+            name="🧮 Summary",
+            value=(
+                f"🧹 **Total Clean:** `{total_clean}`\n"
+                f"💰 **Total Earnings:** `{total_earnings}`\n"
+                f"💵 **Total Profit:** `{total_profit}`"
+            ),
+            inline=False
+        )
+
+        embed.set_footer(text=f"Cleared by {interaction.user.name}")
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     else:
         await interaction.response.send_message(
