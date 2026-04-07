@@ -343,67 +343,68 @@ async def clear(interaction: discord.Interaction, user: discord.User):
             "❌ Owner only",
             ephemeral=True
         )
-data = user_data.get(user.id)
 
-if data:
+    data = user_data.get(user.id)
 
-    packs = data.get("packs", {})
+    if data:
 
-    PACK_PRICES = {
-        "mini": 7,
-        "small": 12,
-        "mediant": 17,
-        "vast": 30
-    }
+        packs = data.get("packs", {})
 
-    PACK_PROFIT = {
-        "mini": 1,
-        "small": 2.25,
-        "mediant": 4,
-        "vast": 8
-    }
+        PACK_PRICES = {
+            "mini": 7,
+            "small": 12,
+            "mediant": 17,
+            "vast": 30
+        }
 
-    total_clean = 0
-    total_profit = 0
-    total_earnings = 0
+        PACK_PROFIT = {
+            "mini": 1,
+            "small": 2.25,
+            "mediant": 4,
+            "vast": 8
+        }
 
-    pack_lines = ""
+        total_clean = 0
+        total_profit = 0
+        total_earnings = 0
 
-    for pack, count in packs.items():
-        price = PACK_PRICES.get(pack, 0)
-        profit = PACK_PROFIT.get(pack, 0)
+        pack_lines = ""
 
-        clean_profit = count * profit
-        clean_earnings = count * price
+        for pack, count in packs.items():
+            price = PACK_PRICES.get(pack, 0)
+            profit = PACK_PROFIT.get(pack, 0)
 
-        total_clean += count
-        total_profit += clean_profit
-        total_earnings += clean_earnings
+            clean_profit = count * profit
+            clean_earnings = count * price
 
-        if count > 0:
-            pack_lines += (
-                f"📦 {pack.capitalize()}: {count}\n"
-                f"   💰 Earnings: {clean_earnings}\n"
-                f"   💵 Profit: {clean_profit}\n\n"
-            )
+            total_clean += count
+            total_profit += clean_profit
+            total_earnings += clean_earnings
 
-    # delete data
-    del user_data[user.id]
+            if count > 0:
+                pack_lines += (
+                    f"📦 {pack.capitalize()}: {count}\n"
+                    f"   💰 Earnings: {clean_earnings}\n"
+                    f"   💵 Profit: {clean_profit}\n\n"
+                )
 
-    await interaction.response.send_message(
-        f"✅ Cleared data for {user.name}\n\n"
-        f"{pack_lines}"
-        f"🧹 Total Clean: {total_clean}\n"
-        f"💰 Total Earnings: {total_earnings}\n"
-        f"💵 Total Profit: {total_profit}",
-        ephemeral=True
-    )
+        # delete data
+        del user_data[user.id]
 
-else:
-    await interaction.response.send_message(
-        "⚠️ User has no data.",
-        ephemeral=True
-    )
+        await interaction.response.send_message(
+            f"✅ Cleared data for {user.name}\n\n"
+            f"{pack_lines}"
+            f"🧹 Total Clean: {total_clean}\n"
+            f"💰 Total Earnings: {total_earnings}\n"
+            f"💵 Total Profit: {total_profit}",
+            ephemeral=True
+        )
+
+    else:
+        await interaction.response.send_message(
+            "⚠️ User has no data.",
+            ephemeral=True
+        )
     
 # =========================
 # READY
