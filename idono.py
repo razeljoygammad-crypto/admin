@@ -281,8 +281,8 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
     PACK_PRICES = {
         "mini": 7,
         "small": 12,
-        "mediant": 17,
-        "vast": 30
+        "mediant": 18,
+        "vast": 34
     }
 
     target = interaction.user
@@ -353,8 +353,8 @@ async def clear(interaction: discord.Interaction, user: discord.User):
         PACK_PRICES = {
             "mini": 7,
             "small": 12,
-            "mediant": 17,
-            "vast": 30
+            "mediant": 18,
+            "vast": 34
         }
 
         PACK_PROFIT = {
@@ -462,8 +462,8 @@ async def leaderboard(interaction: discord.Interaction):
     PACK_PRICES = {
         "mini": 7,
         "small": 12,
-        "mediant": 17,
-        "vast": 30
+        "mediant": 18,
+        "vast": 34
     }
 
     # 💵 PROFIT PER PACK
