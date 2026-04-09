@@ -371,7 +371,7 @@ async def clear(interaction: discord.Interaction, user: discord.User):
             "vast": 4925
         }
         
-        total_clean = 0
+        total_Pack = 0
         total_profit = 0
         total_earnings = 0
         total_unclean = 0
@@ -387,7 +387,7 @@ async def clear(interaction: discord.Interaction, user: discord.User):
             clean_earnings = count * price
             clean_unclean = count * unclean
 
-            total_clean += count
+            total_Pack += count
             total_profit += clean_profit
             total_earnings += clean_earnings
             total_unclean += clean_unclean
@@ -421,7 +421,7 @@ async def clear(interaction: discord.Interaction, user: discord.User):
         embed.add_field(
             name="🧮 Summary",
             value=(
-                f"🧹 **Total Clean:** `{total_clean}`\n"
+                f"📦**Total Pack:** `{total_Pack}`\n"
                 f"💰 **Total Earnings:** `{total_earnings}`\n"
                 f"💵 **Total Profit:** `{total_profit}`"
                 f"🧹 **Total Unclean:** `{total_unclean}`"
