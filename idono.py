@@ -363,29 +363,41 @@ async def clear(interaction: discord.Interaction, user: discord.User):
             "mediant": 4,
             "vast": 8
         }
-
+        
+        PACK_UNCLEAN = {
+            "mini": 720,
+            "small": 1445,
+            "mediant": 2525,
+            "vast": 4925
+        }
+        
         total_clean = 0
         total_profit = 0
         total_earnings = 0
+        total_unclean = 0
 
         pack_lines = ""
 
         for pack, count in packs.items():
             price = PACK_PRICES.get(pack, 0)
             profit = PACK_PROFIT.get(pack, 0)
+            unclean = PACK_UNCLEAN.get(pack, 0)
 
             clean_profit = count * profit
             clean_earnings = count * price
+            clean_unclean = count * unclean
 
             total_clean += count
             total_profit += clean_profit
             total_earnings += clean_earnings
+            total_unclean += clean_unclean
 
             if count > 0:
                 pack_lines += (
                     f"📦 **{pack.capitalize()}**: {count}\n"
                     f"  💰 Earnings: `{clean_earnings}`\n"
                     f"  💵 Profit: `{clean_profit}`\n\n"
+                    f"  🧹 Unclean: `{clean_unclean}`\n\n"
                 )
 
         # delete data
@@ -412,6 +424,7 @@ async def clear(interaction: discord.Interaction, user: discord.User):
                 f"🧹 **Total Clean:** `{total_clean}`\n"
                 f"💰 **Total Earnings:** `{total_earnings}`\n"
                 f"💵 **Total Profit:** `{total_profit}`"
+                f"🧹 **Total Unclean:** `{total_unclean}`"
             ),
             inline=False
         )
@@ -474,6 +487,14 @@ async def leaderboard(interaction: discord.Interaction):
         "vast": 8
     }
 
+    #💵 UNCLEAN PER PACK
+    PACK_UNCLEAN = {
+        "mini": 720,
+        "small": 1445,
+        "mediant": 2525,
+        "vast": 4925
+    }
+
     leaderboard_list = []
 
     for user_id, data in user_data.items():
@@ -483,6 +504,7 @@ async def leaderboard(interaction: discord.Interaction):
             packs.get(p, 0) * PACK_PRICES[p]
             for p in PACK_PRICES
         )
+       
 
         uploads = data.get("total_uploads", 0)
 
@@ -517,14 +539,22 @@ async def leaderboard(interaction: discord.Interaction):
         small_profit = small * PACK_PROFIT["small"]
         mediant_profit = mediant * PACK_PROFIT["mediant"]
         vast_profit = vast * PACK_PROFIT["vast"]
-
+        
+        # 💵 UNCLEAN CALCULATION
+        mini_unclean = mini * PACK_UNCLEAN["mini"]
+        small_unclean = small * PACK_UNCLEAN["small"]
+        mediant_unclean = mediant * PACK_UNCLEAN["mediant"]
+        vast_unclean = vast * PACK_UNCLEAN["vast"]
+        
+        
         total_profit = mini_profit + small_profit + mediant_profit + vast_profit
 
         description += (
             f"{prefix} **{name}**\n"
             f"💰 Earnings: {earnings} 💎 | 📊 {uploads}\n"
             f"💵 Profit: {total_profit} 💎\n\n"
-            f"🧹 Mini:{mini} Small:{small} Mediant:{mediant} Vast:{vast}\n"
+            f"🧹 unclean: {mini_unclean + small_unclean + mediant_unclean + vast_unclean} 💎\n"
+            f" Mini:{mini} Small:{small} Mediant:{mediant} Vast:{vast}\n"
         )
 
     embed.description = description or "No data."
