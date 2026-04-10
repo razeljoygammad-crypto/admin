@@ -279,10 +279,10 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
         )
 
     PACK_PRICES = {
-        "mini": 7,
-        "small": 12,
-        "mediant": 18,
-        "vast": 34
+        "mini": 9,
+        "small": 16,
+        "mediant": 23,
+        "vast": 40
     }
 
     target = interaction.user
@@ -351,24 +351,24 @@ async def clear(interaction: discord.Interaction, user: discord.User):
         packs = data.get("packs", {})
 
         PACK_PRICES = {
-            "mini": 7,
-            "small": 12,
-            "mediant": 18,
-            "vast": 34
+            "mini": 9,
+            "small": 16,
+            "mediant": 23,
+            "vast": 40
         }
 
         PACK_PROFIT = {
-            "mini": 1,
-            "small": 2.25,
-            "mediant": 4,
-            "vast": 8
+            "mini": 1.15,
+            "small": 2.50,
+            "mediant": 4.50,
+            "vast": 9
         }
         
         PACK_UNCLEAN = {
-            "mini": 720,
-            "small": 1445,
+            "mini": 735,
+            "small": 1470,
             "mediant": 2525,
-            "vast": 4925
+            "vast": 5025 
         }
         
         total_Pack = 0
@@ -473,27 +473,27 @@ async def leaderboard(interaction: discord.Interaction):
         )
 
     PACK_PRICES = {
-        "mini": 7,
-        "small": 12,
-        "mediant": 18,
-        "vast": 34
+        "mini": 9,
+        "small": 16,
+        "mediant": 23,
+        "vast": 40
     }
 
     # 💵 PROFIT PER PACK
     PACK_PROFIT = {
-        "mini": 1,
-        "small": 2.25,
-        "mediant": 4,
-        "vast": 8
+        "mini": 1.15,
+        "small": 2.50,
+        "mediant": 4.50,
+        "vast": 9
     }
 
     #💵 UNCLEAN PER PACK
     PACK_UNCLEAN = {
-        "mini": 720,
-        "small": 1445,
+        "mini": 735,
+        "small": 1470,
         "mediant": 2525,
-        "vast": 4925
-    }
+        "vast": 5025 
+     }
 
     leaderboard_list = []
 
