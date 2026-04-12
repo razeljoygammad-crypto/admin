@@ -367,7 +367,7 @@ async def clear(interaction: discord.Interaction, user: discord.User):
         PACK_UNCLEAN = {
             "mini": 735,
             "small": 1470,
-            "mediant": 2525,
+            "mediant": 2575,
             "vast": 5025 
         }
         
@@ -491,7 +491,7 @@ async def leaderboard(interaction: discord.Interaction):
     PACK_UNCLEAN = {
         "mini": 735,
         "small": 1470,
-        "mediant": 2525,
+        "mediant": 2575,
         "vast": 5025 
      }
 
