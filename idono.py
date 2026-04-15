@@ -232,6 +232,7 @@ async def on_message(message):
         return
 
     if message.channel.category_id != ALLOWED_CATEGORY_ID:
+        await bot.process_commands(message)
         return
 
     if not has_allowed_role(message.author):
@@ -531,9 +532,9 @@ async def collectpro(interaction: discord.Interaction, user: discord.User):
         embed.add_field(
             name="🧮 Summary",
             value=(
-                f"📦**Total Pack:** `{total_Pack}`\n"
+                f"📦 **Total Pack:** `{total_clean}`\n"
                 f"💰 **Total Earnings:** `{total_earnings}`\n"
-                f"💵 **Total Profit:** `{total_profit}`"
+                f"💵 **Total Profit:** `{total_profit}`\n"
                 f"💵 **Total Unclean:** `{total_unclean}`"
             ),
             inline=False
@@ -559,8 +560,9 @@ async def on_ready():
     app_info = await bot.application_info()
     OWNER_ID = app_info.owner.id
 
-    await bot.tree.sync()
-    print(f"Logged in as {bot.user}")
+    synced = await bot.tree.sync()
+    print(f"✅ Synced {len(synced)} commands")
+    print(f"🤖 Logged in as {bot.user}")
 
 # =========================
 # LEADERBOARD CHECK
@@ -671,7 +673,6 @@ async def leaderboard(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=embed)
 
-
 # =========================
 # ERROR HANDLER (HIDE COMMAND)
 # =========================
@@ -679,6 +680,18 @@ async def leaderboard(interaction: discord.Interaction):
 async def leaderboard_error(interaction: discord.Interaction, error):
     if isinstance(error, app_commands.errors.CheckFailure):
         return  # silently ignore
+
+# =========================
+# command
+# =========================
+@bot.tree.error
+async def on_app_command_error(interaction: discord.Interaction, error):
+    print(f"ERROR: {error}")
+    
+    if interaction.response.is_done():
+        await interaction.followup.send(f"⚠️ Error: {error}", ephemeral=True)
+    else:
+        await interaction.response.send_message(f"⚠️ Error: {error}", ephemeral=True)
 
 # =========================
 # RUN
