@@ -279,10 +279,10 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
         )
 
     PACK_PRICES = {
-        "mini": 9,
-        "small": 16,
-        "mediant": 23,
-        "vast": 40
+        "mini": 12,
+        "small": 22,
+        "mediant": 28,
+        "vast": 55
     }
 
     target = interaction.user
@@ -331,11 +331,11 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
     await interaction.response.send_message(embed=embed)
     
 # =========================
-# /CLEAR USER (COOL VERSION)
+# /COLLECT USER (COOL VERSION)
 # =========================
-@bot.tree.command(name="clear", description="Clear a specific user's data (Owner only)")
+@bot.tree.command(name="collect", description="Clear a specific user's data (Owner only)")
 @app_commands.describe(user="The user whose data you want to clear")
-async def clear(interaction: discord.Interaction, user: discord.User):
+async def collect(interaction: discord.Interaction, user: discord.User):
 
     # Owner check
     if interaction.user.id != OWNER_ID:
@@ -351,27 +351,27 @@ async def clear(interaction: discord.Interaction, user: discord.User):
         packs = data.get("packs", {})
 
         PACK_PRICES = {
-            "mini": 9,
-            "small": 16,
-            "mediant": 23,
-            "vast": 40
+            "mini": 12,
+            "small": 22,
+            "mediant": 28,
+            "vast": 55
         }
 
         PACK_PROFIT = {
-            "mini": 1.15,
-            "small": 2.50,
-            "mediant": 4.50,
-            "vast": 9
+            "mini": 2,
+            "small": 4,
+            "mediant": 5.50,
+            "vast": 11
         }
         
         PACK_UNCLEAN = {
-            "mini": 735,
-            "small": 1470,
-            "mediant": 2575,
-            "vast": 5025 
+            "mini": 1375,
+            "small": 2675,
+            "mediant": 4680,
+            "vast": 9230
         }
         
-        total_Pack = 0
+        total_clean = 0
         total_profit = 0
         total_earnings = 0
         total_unclean = 0
@@ -387,7 +387,7 @@ async def clear(interaction: discord.Interaction, user: discord.User):
             clean_earnings = count * price
             clean_unclean = count * unclean
 
-            total_Pack += count
+            total_clean += count
             total_profit += clean_profit
             total_earnings += clean_earnings
             total_unclean += clean_unclean
@@ -397,7 +397,117 @@ async def clear(interaction: discord.Interaction, user: discord.User):
                     f"📦 **{pack.capitalize()}**: {count}\n"
                     f"  💰 Earnings: `{clean_earnings}`\n"
                     f"  💵 Profit: `{clean_profit}`\n\n"
-                    f"  🧹 Unclean: `{clean_unclean}`\n\n"
+                    f"  💵 Unclean: `{clean_unclean}`\n\n"
+                )
+
+        # delete data
+        del user_data[user.id]
+
+        # =========================
+        # EMBED OUTPUT
+        # =========================
+        embed = discord.Embed(
+            title="🧹 Data Cleared Successfully",
+            description=f"👤 **User:** {user.mention}\n\n📦 **Pack Breakdown:**",
+            color=discord.Color.dark_red()
+        )
+
+        embed.add_field(
+            name="📊 Pack Details",
+            value=pack_lines if pack_lines else "No packs found.",
+            inline=False
+        )
+
+        embed.add_field(
+            name="🧮 Summary",
+            value=(
+                f"💵 **Total Clean:** `{total_clean}`\n"
+                f"💰 **Total Earnings:** `{total_earnings}`\n"
+                f"💵 **Total Profit:** `{total_profit}`"
+                f"💵 **Total Unclean:** `{total_unclean}`"
+            ),
+            inline=False
+        )
+
+        embed.set_footer(text=f"Cleared by {interaction.user.name}")
+
+        await interaction.response.send_message(embed=embed)
+
+    else:
+        await interaction.response.send_message(
+            "⚠️ User has no data.",
+            ephemeral=True
+        )
+    
+
+# =========================
+# /COLLECTPRO USER (COOL VERSION)
+# =========================
+@bot.tree.command(name="collectpro", description="Clear a specific user's data (Owner only)")
+@app_commands.describe(user="The user whose data you want to clear")
+async def collectpro(interaction: discord.Interaction, user: discord.User):
+
+    # Owner check
+    if interaction.user.id != OWNER_ID:
+        return await interaction.response.send_message(
+            "❌ Owner only",
+            ephemeral=True
+        )
+
+    data = user_data.get(user.id)
+
+    if data:
+
+        packs = data.get("packs", {})
+
+        PACK_PRICES = {
+            "mini": 12,
+            "small": 22,
+            "mediant": 28,
+            "vast": 55
+        }
+
+        PACK_PROFIT = {
+            "mini": 2.25,
+            "small": 4.50,
+            "mediant": 6.50,
+            "vast": 13
+        }
+        
+        PACK_UNCLEAN = {
+            "mini": 1400,
+            "small": 2725,
+            "mediant": 4780,
+            "vast": 9430 
+        }
+        
+        total_clean = 0
+        total_profit = 0
+        total_earnings = 0
+        total_unclean = 0
+
+        pack_lines = ""
+
+        for pack, count in packs.items():
+            price = PACK_PRICES.get(pack, 0)
+            profit = PACK_PROFIT.get(pack, 0)
+            unclean = PACK_UNCLEAN.get(pack, 0)
+
+            clean_profit = count * profit
+            clean_earnings = count * price
+            clean_unclean = count * unclean
+
+            total_clean += count
+            total_profit += clean_profit
+            total_earnings += clean_earnings
+            total_unclean += clean_unclean
+
+            if count > 0:
+                pack_lines += (
+                    f"📦 **{pack.capitalize()}**: {count}\n"
+                    f"  💰 Earnings: `{clean_earnings}`\n"
+                    f"  💵 Profit: `{clean_profit}`\n\n"
+                    f"  💵 Unclean: `{clean_unclean}`\n\n"
                 )
 
         # delete data
@@ -424,7 +534,7 @@ async def clear(interaction: discord.Interaction, user: discord.User):
                 f"📦**Total Pack:** `{total_Pack}`\n"
                 f"💰 **Total Earnings:** `{total_earnings}`\n"
                 f"💵 **Total Profit:** `{total_profit}`"
-                f"🧹 **Total Unclean:** `{total_unclean}`"
+                f"💵 **Total Unclean:** `{total_unclean}`"
             ),
             inline=False
         )
@@ -473,26 +583,26 @@ async def leaderboard(interaction: discord.Interaction):
         )
 
     PACK_PRICES = {
-        "mini": 9,
-        "small": 16,
-        "mediant": 23,
-        "vast": 40
+        "mini": 12,
+        "small": 22,
+        "mediant": 28,
+        "vast": 55
     }
 
     # 💵 PROFIT PER PACK
     PACK_PROFIT = {
-        "mini": 1.15,
-        "small": 2.50,
-        "mediant": 4.50,
-        "vast": 9
+        "mini": 2,
+        "small": 4,
+        "mediant": 5.5,
+        "vast": 11
     }
 
     #💵 UNCLEAN PER PACK
     PACK_UNCLEAN = {
-        "mini": 735,
-        "small": 1470,
-        "mediant": 2575,
-        "vast": 5025 
+        "mini": 1375,
+        "small": 2675,
+        "mediant": 4680,
+        "vast": 9230 
      }
 
     leaderboard_list = []
