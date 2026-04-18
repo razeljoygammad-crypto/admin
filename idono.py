@@ -127,7 +127,7 @@ class CalcModal(discord.ui.Modal):
             "mini": 125000,
             "small": 250000,
             "mediant": 500000,
-            "vast": 1000000
+            "vast": 1100000
         }
 
         selected_xp = pack_values.get(self.pack, 0)
