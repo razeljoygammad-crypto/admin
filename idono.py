@@ -76,10 +76,10 @@ class CalcModal(discord.ui.Modal):
         super().__init__(title="XP Calculator")
         self.pack = pack
 
-        self.start_lvl = discord.ui.TextInput(label="Current Level")
-        self.current_xp = discord.ui.TextInput(label="Current XP", required=False)
-        self.end_lvl = discord.ui.TextInput(label="End Level")
-        self.end_xp = discord.ui.TextInput(label="End XP", required=False)
+        self.start_lvl = discord.ui.TextInput(label="Current Level", required=True)
+        self.current_xp = discord.ui.TextInput(label="Current XP", required=True)
+        self.end_lvl = discord.ui.TextInput(label="End Level", required=True)
+        self.end_xp = discord.ui.TextInput(label="End XP", required=True)
 
         self.add_item(self.start_lvl)
         self.add_item(self.current_xp)
