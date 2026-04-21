@@ -280,7 +280,7 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
         )
 
     PACK_PRICES = {
-        "mini": 12,
+        "mini": 15,
         "small": 22,
         "mediant": 28,
         "vast": 55
@@ -352,21 +352,21 @@ async def collect(interaction: discord.Interaction, user: discord.User):
         packs = data.get("packs", {})
 
         PACK_PRICES = {
-            "mini": 12,
+            "mini": 15,
             "small": 22,
             "mediant": 28,
             "vast": 55
         }
 
         PACK_PROFIT = {
-            "mini": 2,
+            "mini": 3.5,
             "small": 4,
             "mediant": 5.50,
             "vast": 11
         }
         
         PACK_UNCLEAN = {
-            "mini": 1375,
+            "mini": 1525,
             "small": 2675,
             "mediant": 4680,
             "vast": 9230
@@ -462,21 +462,21 @@ async def collectpro(interaction: discord.Interaction, user: discord.User):
         packs = data.get("packs", {})
 
         PACK_PRICES = {
-            "mini": 12,
+            "mini": 15,
             "small": 22,
             "mediant": 28,
             "vast": 55
         }
 
         PACK_PROFIT = {
-            "mini": 2.25,
+            "mini": 3.75,
             "small": 4.50,
             "mediant": 6.50,
             "vast": 13
         }
         
         PACK_UNCLEAN = {
-            "mini": 850,
+            "mini": 1000,
             "small": 1625,
             "mediant": 2780,
             "vast": 5430
@@ -585,7 +585,7 @@ async def leaderboard(interaction: discord.Interaction):
         )
 
     PACK_PRICES = {
-        "mini": 12,
+        "mini": 15,
         "small": 22,
         "mediant": 28,
         "vast": 55
@@ -601,7 +601,7 @@ async def leaderboard(interaction: discord.Interaction):
 
     #💵 UNCLEAN PER PACK
     PACK_UNCLEAN = {
-        "mini": 1375,
+        "mini": 1525,
         "small": 2675,
         "mediant": 4680,
         "vast": 9230 
