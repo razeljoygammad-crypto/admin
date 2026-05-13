@@ -1,7 +1,6 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-import math
 from flask import Flask
 import os
 from threading import Thread
@@ -68,18 +67,17 @@ def get_user(user_id):
     return user_data[user_id]
 
 # =========================
-# MODAL
+# MODAL (FIXED)
 # =========================
 class CalcModal(discord.ui.Modal):
-
     def __init__(self, pack):
         super().__init__(title="XP Calculator")
         self.pack = pack
 
-        self.start_lvl = discord.ui.TextInput(label="Current Level", required=True)
-        self.current_xp = discord.ui.TextInput(label="Current XP", required=True)
-        self.end_lvl = discord.ui.TextInput(label="End Level", required=True)
-        self.end_xp = discord.ui.TextInput(label="End XP", required=True)
+        self.start_lvl = discord.ui.TextInput(label="Start Level")
+        self.current_xp = discord.ui.TextInput(label="Current XP", required=False)
+        self.end_lvl = discord.ui.TextInput(label="End Level")
+        self.end_xp = discord.ui.TextInput(label="End XP", required=False)
 
         self.add_item(self.start_lvl)
         self.add_item(self.current_xp)
@@ -88,29 +86,18 @@ class CalcModal(discord.ui.Modal):
 
     async def on_submit(self, interaction: discord.Interaction):
 
-        # =========================
-        # PERMISSION CHECK
-        # =========================
         if not has_allowed_role(interaction.user):
-            return await interaction.response.send_message(
-                "❌ Not allowed.", ephemeral=True
-            )
+            return await interaction.response.send_message("❌ Not allowed.", ephemeral=True)
 
-        # =========================
-        # INPUT VALIDATION
-        # =========================
         try:
             clvl = int(self.start_lvl.value)
             xp_had = int(self.current_xp.value or 0)
             elvl = int(self.end_lvl.value)
+            end_xp = int(self.end_xp.value or 0)
         except:
-            return await interaction.response.send_message(
-                "⚠️ Numbers only!", ephemeral=True
-            )
+            return await interaction.response.send_message("⚠️ Numbers only!", ephemeral=True)
 
-        # =========================
-        # XP CALCULATION
-        # =========================
+        # XP FORMULA (ONE SYSTEM ONLY)
         total_xp = 0
         lvl = clvl
 
@@ -118,11 +105,8 @@ class CalcModal(discord.ui.Modal):
             total_xp += 50 * (lvl * lvl + 2)
             lvl += 1
 
-        total_xp = max(0, total_xp - xp_had)
+        total_xp = max(0, total_xp - xp_had + end_xp)
 
-        # =========================
-        # PACK VALUES
-        # =========================
         pack_values = {
             "mini": 125000,
             "small": 250000,
@@ -132,9 +116,7 @@ class CalcModal(discord.ui.Modal):
 
         selected_xp = pack_values.get(self.pack, 0)
 
-        # =========================
-        # STATUS LOGIC (IF / ELSE)
-        # =========================
+        # CORRECT LOGIC
         if selected_xp >= total_xp:
             status = "❌ Not Enough"
             missing_xp = total_xp - selected_xp
@@ -144,9 +126,7 @@ class CalcModal(discord.ui.Modal):
             missing_xp = 0
             extra_xp = selected_xp - total_xp
 
-        # =========================
-        # EMBED RESULT
-        # =========================
+
         embed = discord.Embed(
             title="🎯 XP Result",
             color=discord.Color.orange()
@@ -155,8 +135,8 @@ class CalcModal(discord.ui.Modal):
         embed.add_field(
             name="📊 XP Result",
             value=(
-                f"**Total AXP Got:** {total_xp:,}\n"
-                f"**Pack Selected:** {self.pack}\n"
+                f"**Total XP Needed:** {total_xp:,}\n"
+                f"**Pack:** {self.pack}\n"
                 f"**Status:** {status}\n"
                 f"**Missing XP:** {missing_xp:,}\n"
                 f"**Extra XP:** {extra_xp:,}"
@@ -164,7 +144,7 @@ class CalcModal(discord.ui.Modal):
             inline=False
         )
 
-        # =========================
+       # =========================
         # FOOTER (DYNAMIC)
         # =========================
         if missing_xp > 0:
@@ -266,6 +246,7 @@ async def on_message(message):
     )
 
     await bot.process_commands(message)
+    
 # =========================
 # /STATUS
 # =========================
@@ -281,10 +262,13 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
 
     PACK_PRICES = {
         "mini": 15,
-        "small": 22,
-        "mediant": 28,
-        "vast": 55
+        "small": 28,
+        "mediant": 40,
+        "vast": 70
     }
+
+    # your emoji
+    emoji = "<:dl:1495834832524021962>"
 
     target = interaction.user
 
@@ -319,12 +303,12 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
     embed.add_field(
         name=target.name,
         value=(
-            f"💰 Earnings: {earnings} 💎\n"
+            f"💰 Earnings: {earnings} {emoji}\n"
             f"📊 Total Uploads: {data.get('total_uploads', 0)}\n"
-            f"📦 Mini: {packs.get('mini', 0)}\n"
-            f"📦 Small: {packs.get('small', 0)}\n"
-            f"📦 Mediant: {packs.get('mediant', 0)}\n"
-            f"📦 Vast: {packs.get('vast', 0)}"
+            f"🚀 Mini: {packs.get('mini', 0)}\n"
+            f"🌿 Small: {packs.get('small', 0)}\n"
+            f"🔥 Mediant: {packs.get('mediant', 0)}\n"
+            f"👑 Vast: {packs.get('vast', 0)}"
         ),
         inline=False
     )
@@ -353,23 +337,23 @@ async def collect(interaction: discord.Interaction, user: discord.User):
 
         PACK_PRICES = {
             "mini": 15,
-            "small": 22,
-            "mediant": 28,
-            "vast": 55
+            "small": 28,
+            "mediant": 40,
+            "vast": 70
         }
 
         PACK_PROFIT = {
             "mini": 3.5,
-            "small": 4,
-            "mediant": 5.50,
-            "vast": 11
+            "small": 4.5,
+            "mediant": 6.5,
+            "vast": 15
         }
         
         PACK_UNCLEAN = {
-            "mini": 1525,
-            "small": 2675,
-            "mediant": 4680,
-            "vast": 9230
+            "mini": 2075,
+            "small": 3775,
+            "mediant": 6785,
+            "vast": 13655
         }
         
         total_clean = 0
@@ -463,23 +447,23 @@ async def collectpro(interaction: discord.Interaction, user: discord.User):
 
         PACK_PRICES = {
             "mini": 15,
-            "small": 22,
-            "mediant": 28,
-            "vast": 55
+            "small": 28,
+            "mediant": 40,
+            "vast": 70
         }
 
         PACK_PROFIT = {
             "mini": 3.75,
-            "small": 4.50,
-            "mediant": 6.50,
-            "vast": 13
+            "small": 5,
+            "mediant": 7.5,
+            "vast": 17
         }
         
         PACK_UNCLEAN = {
-            "mini": 1000,
-            "small": 1625,
-            "mediant": 2780,
-            "vast": 5430
+            "mini": 450,
+            "small": 575,
+            "mediant": 895,
+            "vast": 1845
         }
         
         total_clean = 0
@@ -586,26 +570,24 @@ async def leaderboard(interaction: discord.Interaction):
 
     PACK_PRICES = {
         "mini": 15,
-        "small": 22,
-        "mediant": 28,
-        "vast": 55
+        "small": 28,
+        "mediant": 40,
+        "vast": 70
     }
 
-    # 💵 PROFIT PER PACK
     PACK_PROFIT = {
-        "mini": 2,
-        "small": 4,
-        "mediant": 5.5,
-        "vast": 11
+        "mini": 3.5,
+        "small": 4.5,
+        "mediant": 6.5,
+        "vast": 15
     }
 
-    #💵 UNCLEAN PER PACK
     PACK_UNCLEAN = {
-        "mini": 1525,
-        "small": 2675,
-        "mediant": 4680,
-        "vast": 9230 
-     }
+        "mini": 2075,
+        "small": 3775,
+        "mediant": 6785,
+        "vast": 13655
+    }
 
     leaderboard_list = []
 
@@ -616,14 +598,12 @@ async def leaderboard(interaction: discord.Interaction):
             packs.get(p, 0) * PACK_PRICES[p]
             for p in PACK_PRICES
         )
-       
 
         uploads = data.get("total_uploads", 0)
 
         leaderboard_list.append((user_id, earnings, uploads, packs))
 
     leaderboard_list.sort(key=lambda x: x[1], reverse=True)
-
     top_users = leaderboard_list[:10]
 
     embed = discord.Embed(
@@ -632,6 +612,9 @@ async def leaderboard(interaction: discord.Interaction):
     )
 
     description = ""
+
+    # ✅ define emoji ONCE here (cleaner)
+    emoji = "<:dl:1495834832524021962>"
 
     for i, (user_id, earnings, uploads, packs) in enumerate(top_users, start=1):
         user = bot.get_user(user_id)
@@ -651,21 +634,20 @@ async def leaderboard(interaction: discord.Interaction):
         small_profit = small * PACK_PROFIT["small"]
         mediant_profit = mediant * PACK_PROFIT["mediant"]
         vast_profit = vast * PACK_PROFIT["vast"]
-        
+
         # 💵 UNCLEAN CALCULATION
         mini_unclean = mini * PACK_UNCLEAN["mini"]
         small_unclean = small * PACK_UNCLEAN["small"]
         mediant_unclean = mediant * PACK_UNCLEAN["mediant"]
         vast_unclean = vast * PACK_UNCLEAN["vast"]
-        
-        
+
         total_profit = mini_profit + small_profit + mediant_profit + vast_profit
 
         description += (
             f"{prefix} **{name}**\n"
-            f"💰 Earnings: {earnings} 💎 | 📊 {uploads}\n"
-            f"💵 Profit: {total_profit} 💎\n\n"
-            f"🧹 unclean: {mini_unclean + small_unclean + mediant_unclean + vast_unclean} 💎\n"
+            f"💰 Earnings: {earnings} {emoji} | 📊 {uploads}\n"
+            f"💵 Profit: {total_profit} {emoji}\n\n"
+            f"🧹 unclean: {mini_unclean + small_unclean + mediant_unclean + vast_unclean} {emoji}\n"
             f" Mini:{mini} Small:{small} Mediant:{mediant} Vast:{vast}\n"
         )
 
@@ -693,6 +675,18 @@ async def on_app_command_error(interaction: discord.Interaction, error):
     else:
         await interaction.response.send_message(f"⚠️ Error: {error}", ephemeral=True)
 
+# =========================
+# READY
+# =========================
+@bot.event
+async def on_ready():
+    global OWNER_ID
+    app_info = await bot.application_info()
+    OWNER_ID = app_info.owner.id
+
+    await bot.tree.sync()
+    print(f"Logged in as {bot.user}")
+    
 # =========================
 # RUN
 # =========================
