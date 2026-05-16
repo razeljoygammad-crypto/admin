@@ -352,8 +352,8 @@ async def collect(interaction: discord.Interaction, user: discord.User):
         PACK_UNCLEAN = {
             "mini": 2075,
             "small": 3775,
-            "mediant": 6785,
-            "vast": 13655
+            "mediant": 6795,
+            "vast": 13645
         }
         
         total_clean = 0
@@ -585,8 +585,8 @@ async def leaderboard(interaction: discord.Interaction):
     PACK_UNCLEAN = {
         "mini": 2075,
         "small": 3775,
-        "mediant": 6785,
-        "vast": 13655
+        "mediant": 6795,
+        "vast": 13645
     }
 
     leaderboard_list = []
