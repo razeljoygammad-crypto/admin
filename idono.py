@@ -263,8 +263,8 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
     PACK_PRICES = {
         "mini": 15,
         "small": 28,
-        "mediant": 40,
-        "vast": 70
+        "mediant": 35,
+        "vast": 65
     }
 
     # your emoji
@@ -338,8 +338,8 @@ async def collect(interaction: discord.Interaction, user: discord.User):
         PACK_PRICES = {
             "mini": 15,
             "small": 28,
-            "mediant": 40,
-            "vast": 70
+            "mediant": 35,
+            "vast": 65
         }
 
         PACK_PROFIT = {
@@ -448,8 +448,8 @@ async def collectpro(interaction: discord.Interaction, user: discord.User):
         PACK_PRICES = {
             "mini": 15,
             "small": 28,
-            "mediant": 40,
-            "vast": 70
+            "mediant": 35,
+            "vast": 65
         }
 
         PACK_PROFIT = {
@@ -571,8 +571,8 @@ async def leaderboard(interaction: discord.Interaction):
     PACK_PRICES = {
         "mini": 15,
         "small": 28,
-        "mediant": 40,
-        "vast": 70
+        "mediant": 35,
+        "vast": 65
     }
 
     PACK_PROFIT = {
