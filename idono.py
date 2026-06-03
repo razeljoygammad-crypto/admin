@@ -262,9 +262,9 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
 
     PACK_PRICES = {
         "mini": 15,
-        "small": 28,
-        "mediant": 35,
-        "vast": 65
+        "small": 25,
+        "mediant": 30,
+        "vast": 50
     }
 
     # your emoji
@@ -337,9 +337,9 @@ async def collect(interaction: discord.Interaction, user: discord.User):
 
         PACK_PRICES = {
             "mini": 15,
-            "small": 28,
-            "mediant": 35,
-            "vast": 65
+            "small": 25,
+            "mediant": 30,
+            "vast": 50
         }
 
         PACK_PROFIT = {
@@ -350,10 +350,10 @@ async def collect(interaction: discord.Interaction, user: discord.User):
         }
         
         PACK_UNCLEAN = {
-            "mini": 2075,
-            "small": 3775,
-            "mediant": 6795,
-            "vast": 13645
+            "mini": 975,
+            "small": 1625,
+            "mediant": 2795,
+            "vast": 5,645
         }
         
         total_clean = 0
@@ -583,10 +583,10 @@ async def leaderboard(interaction: discord.Interaction):
     }
 
     PACK_UNCLEAN = {
-        "mini": 2075,
-        "small": 3775,
-        "mediant": 6795,
-        "vast": 13645
+        "mini": 975,
+        "small": 1625,
+        "mediant": 2795,
+        "vast": 5645
     }
 
     leaderboard_list = []
