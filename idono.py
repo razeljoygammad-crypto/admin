@@ -353,7 +353,7 @@ async def collect(interaction: discord.Interaction, user: discord.User):
             "mini": 975,
             "small": 1625,
             "mediant": 2795,
-            "vast": 5,645
+            "vast": 5645
         }
         
         total_clean = 0
