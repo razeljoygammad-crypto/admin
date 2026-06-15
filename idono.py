@@ -462,8 +462,8 @@ async def collectpro(interaction: discord.Interaction, user: discord.User):
         PACK_UNCLEAN = {
             "mini": 450,
             "small": 575,
-            "mediant": 895,
-            "vast": 1845
+            "mediant": 1145,
+            "vast": 2145
         }
         
         total_clean = 0
