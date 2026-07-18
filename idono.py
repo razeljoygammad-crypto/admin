@@ -433,223 +433,263 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
     await interaction.response.send_message(embed=embed)
     
 # =========================
-# /COLLECT USER (COOL VERSION)
+# /COLLECT USER
 # =========================
 @bot.tree.command(name="collect", description="Clear a specific user's data (Owner only)")
 @app_commands.describe(user="The user whose data you want to clear")
 async def collect(interaction: discord.Interaction, user: discord.User):
 
-    # Owner check
     if interaction.user.id != OWNER_ID:
         return await interaction.response.send_message(
-            "❌ Owner only",
+            "❌ Owner only.",
             ephemeral=True
         )
 
     data = user_data.get(user.id)
 
-    if data:
-
-        packs = data.get("packs", {})
-
-        PACK_PRICES = {
-            "mini": 15,
-            "small": 25,
-            "mediant": 30,
-            "vast": 60
-        }
-
-        PACK_PROFIT = {
-            "mini": 3.5,
-            "small": 4.5,
-            "mediant": 6.5,
-            "vast": 15
-        }
-        
-        PACK_UNCLEAN = {
-            "mini": 975,
-            "small": 1625,
-            "mediant": 2795,
-            "vast": 5645
-        }
-        
-        total_clean = 0
-        total_profit = 0
-        total_earnings = 0
-        total_unclean = 0
-
-        pack_lines = ""
-
-        for pack, count in packs.items():
-            price = PACK_PRICES.get(pack, 0)
-            profit = PACK_PROFIT.get(pack, 0)
-            unclean = PACK_UNCLEAN.get(pack, 0)
-
-            clean_profit = count * profit
-            clean_earnings = count * price
-            clean_unclean = count * unclean
-
-            total_clean += count
-            total_profit += clean_profit
-            total_earnings += clean_earnings
-            total_unclean += clean_unclean
-
-            if count > 0:
-                pack_lines += (
-                    f"📦 **{pack.capitalize()}**: {count}\n"
-                    f"  💰 Earnings: `{clean_earnings}`\n"
-                    f"  💵 Profit: `{clean_profit}`\n\n"
-                    f"  💵 Unclean: `{clean_unclean}`\n\n"
-                )
-
-        # delete data
-        del user_data[user.id]
-
-        # =========================
-        # EMBED OUTPUT
-        # =========================
-        embed = discord.Embed(
-            title="🧹 Data Cleared Successfully",
-            description=f"👤 **User:** {user.mention}\n\n📦 **Pack Breakdown:**",
-            color=discord.Color.dark_red()
-        )
-
-        embed.add_field(
-            name="📊 Pack Details",
-            value=pack_lines if pack_lines else "No packs found.",
-            inline=False
-        )
-
-        embed.add_field(
-            name="🧮 Summary",
-            value=(
-                f"💵 **Total Clean:** `{total_clean}`\n"
-                f"💰 **Total Earnings:** `{total_earnings}`\n"
-                f"💵 **Total Profit:** `{total_profit}`"
-                f"💵 **Total Unclean:** `{total_unclean}`"
-            ),
-            inline=False
-        )
-
-        embed.set_footer(text=f"Cleared by {interaction.user.name}")
-
-        await interaction.response.send_message(embed=embed)
-
-    else:
-        await interaction.response.send_message(
+    if not data:
+        return await interaction.response.send_message(
             "⚠️ User has no data.",
             ephemeral=True
         )
+
+    packs = data.get("packs", {})
+    refunds = data.get("refunds", {})
+
+    PACK_PRICES = {
+        "mini": 15,
+        "small": 25,
+        "mediant": 30,
+        "vast": 60
+    }
+
+    PACK_PROFIT = {
+        "mini": 3.5,
+        "small": 4.5,
+        "mediant": 6,
+        "vast": 12
+    }
+
+    PACK_UNCLEAN = {
+        "mini": 975,
+        "small": 1625,
+        "mediant": 2745,
+        "vast": 5345
+    }
+
+    total_clean = 0
+    total_profit = 0
+    total_earnings = 0
+    total_unclean = 0
+    total_refunds = 0
+
+    pack_lines = ""
+    refund_lines = ""
+
+    # =========================
+    # REFUNDS
+    # =========================
+    for pack, count in refunds.items():
+        total_refunds += count
+
+        if count > 0:
+            refund_lines += f"🔄 {pack.capitalize()} × {count}\n"
+
+    # =========================
+    # PACKS
+    # =========================
+    for pack, count in packs.items():
+
+        price = PACK_PRICES.get(pack, 0)
+        profit = PACK_PROFIT.get(pack, 0)
+        unclean = PACK_UNCLEAN.get(pack, 0)
+
+        earnings = count * price
+        profit_total = count * profit
+        unclean_total = count * unclean
+
+        total_clean += count
+        total_profit += profit_total
+        total_earnings += earnings
+        total_unclean += unclean_total
+
+        if count > 0:
+            pack_lines += (
+                f"📦 **{pack.capitalize()} × {count}**\n"
+                f" 💰 Earnings: `{earnings}`\n"
+                f" 💵 Profit: `{profit_total}`\n"
+                f" 🧹 Unclean: `{unclean_total}`\n\n"
+            )
+
+    # =========================
+    # EMBED
+    # =========================
+    embed = discord.Embed(
+        title="🧹 Data Cleared Successfully",
+        description=f"👤 **User:** {user.mention}",
+        color=discord.Color.dark_red()
+    )
+
+    embed.add_field(
+        name="📦 Pack Details",
+        value=pack_lines if pack_lines else "No packs recorded.",
+        inline=False
+    )
+
+    embed.add_field(
+        name="🔄 Refund Details",
+        value=refund_lines if refund_lines else "No refunds recorded.",
+        inline=False
+    )
+
+    embed.add_field(
+        name="🧮 Summary",
+        value=(
+            f"📦 Total Packs: `{total_clean}`\n"
+            f"🔄 Total Refunds: `{total_refunds}`\n"
+            f"💰 Total Earnings: `{total_earnings}`\n"
+            f"💵 Total Profit: `{total_profit}`\n"
+            f"🧹 Total Unclean: `{total_unclean}`"
+        ),
+        inline=False
+    )
+
+    embed.set_footer(text=f"Cleared by {interaction.user.name}")
+
+    # Delete data AFTER making the embed
+    del user_data[user.id]
+
+    await interaction.response.send_message(embed=embed)
     
 
 # =========================
-# /COLLECTPRO USER (COOL VERSION)
+# /COLLECTPRO USER
 # =========================
 @bot.tree.command(name="collectpro", description="Clear a specific user's data (Owner only)")
 @app_commands.describe(user="The user whose data you want to clear")
 async def collectpro(interaction: discord.Interaction, user: discord.User):
 
-    # Owner check
     if interaction.user.id != OWNER_ID:
         return await interaction.response.send_message(
-            "❌ Owner only",
+            "❌ Owner only.",
             ephemeral=True
         )
 
     data = user_data.get(user.id)
 
-    if data:
-
-        packs = data.get("packs", {})
-
-        PACK_PRICES = {
-            "mini": 15,
-            "small": 25,
-            "mediant": 35,
-            "vast": 60
-        }
-
-        PACK_PROFIT = {
-            "mini": 3.75,
-            "small": 5,
-            "mediant": 7.5,
-            "vast": 17
-        }
-        
-        PACK_UNCLEAN = {
-            "mini": 450,
-            "small": 575,
-            "mediant": 1145,
-            "vast": 2145
-        }
-        
-        total_clean = 0
-        total_profit = 0
-        total_earnings = 0
-        total_unclean = 0
-
-        pack_lines = ""
-
-        for pack, count in packs.items():
-            price = PACK_PRICES.get(pack, 0)
-            profit = PACK_PROFIT.get(pack, 0)
-            unclean = PACK_UNCLEAN.get(pack, 0)
-
-            clean_profit = count * profit
-            clean_earnings = count * price
-            clean_unclean = count * unclean
-
-            total_clean += count
-            total_profit += clean_profit
-            total_earnings += clean_earnings
-            total_unclean += clean_unclean
-
-            if count > 0:
-                pack_lines += (
-                    f"📦 **{pack.capitalize()}**: {count}\n"
-                    f"  💰 Earnings: `{clean_earnings}`\n"
-                    f"  💵 Profit: `{clean_profit}`\n\n"
-                    f"  💵 Unclean: `{clean_unclean}`\n\n"
-                )
-
-        # delete data
-        del user_data[user.id]
-
-        # =========================
-        # EMBED OUTPUT
-        # =========================
-        embed = discord.Embed(
-            title="🧹 Data Cleared Successfully",
-            description=f"👤 **User:** {user.mention}\n\n📦 **Pack Breakdown:**",
-            color=discord.Color.dark_red()
-        )
-
-        embed.add_field(
-            name="📊 Pack Details",
-            value=pack_lines if pack_lines else "No packs found.",
-            inline=False
-        )
-
-        embed.add_field(
-            name="🧮 Summary",
-            value=(
-                f"📦 **Total Pack:** `{total_clean}`\n"
-                f"💰 **Total Earnings:** `{total_earnings}`\n"
-                f"💵 **Total Profit:** `{total_profit}`\n"
-                f"💵 **Total Unclean:** `{total_unclean}`"
-            ),
-            inline=False
-        )
-
-        embed.set_footer(text=f"Cleared by {interaction.user.name}")
-
-        await interaction.response.send_message(embed=embed)
-
-    else:
-        await interaction.response.send_message(
+    if not data:
+        return await interaction.response.send_message(
             "⚠️ User has no data.",
             ephemeral=True
         )
+
+    packs = data.get("packs", {})
+    refunds = data.get("refunds", {})
+
+    PACK_PRICES = {
+        "mini": 15,
+        "small": 25,
+        "mediant": 35,
+        "vast": 60
+    }
+
+    PACK_PROFIT = {
+        "mini": 3.75,
+        "small": 5,
+        "mediant": 9,
+        "vast": 17
+    }
+
+    PACK_UNCLEAN = {
+        "mini": 450,
+        "small": 575,
+        "mediant": 1045,
+        "vast": 1845
+    }
+
+    total_clean = 0
+    total_profit = 0
+    total_earnings = 0
+    total_unclean = 0
+    total_refunds = 0
+
+    pack_lines = ""
+    refund_lines = ""
+
+    # =========================
+    # REFUND DETAILS
+    # =========================
+    for pack, count in refunds.items():
+        total_refunds += count
+
+        if count > 0:
+            refund_lines += f"🔄 {pack.capitalize()} × {count}\n"
+
+    # =========================
+    # PACK DETAILS
+    # =========================
+    for pack, count in packs.items():
+
+        price = PACK_PRICES.get(pack, 0)
+        profit = PACK_PROFIT.get(pack, 0)
+        unclean = PACK_UNCLEAN.get(pack, 0)
+
+        earnings = count * price
+        profit_total = count * profit
+        unclean_total = count * unclean
+
+        total_clean += count
+        total_profit += profit_total
+        total_earnings += earnings
+        total_unclean += unclean_total
+
+        if count > 0:
+            pack_lines += (
+                f"📦 **{pack.capitalize()} × {count}**\n"
+                f" 💰 Earnings: `{earnings}`\n"
+                f" 💵 Profit: `{profit_total}`\n"
+                f" 🧹 Unclean: `{unclean_total}`\n\n"
+            )
+
+    # =========================
+    # EMBED
+    # =========================
+    embed = discord.Embed(
+        title="🧹 Pro Data Cleared Successfully",
+        description=f"👤 **User:** {user.mention}",
+        color=discord.Color.dark_red()
+    )
+
+    embed.add_field(
+        name="📦 Pack Details",
+        value=pack_lines if pack_lines else "No packs recorded.",
+        inline=False
+    )
+
+    embed.add_field(
+        name="🔄 Refund Details",
+        value=refund_lines if refund_lines else "No refunds recorded.",
+        inline=False
+    )
+
+    embed.add_field(
+        name="🧮 Summary",
+        value=(
+            f"📦 Total Packs: `{total_clean}`\n"
+            f"🔄 Total Refunds: `{total_refunds}`\n"
+            f"💰 Total Earnings: `{total_earnings}`\n"
+            f"💵 Total Profit: `{total_profit}`\n"
+            f"🧹 Total Unclean: `{total_unclean}`"
+        ),
+        inline=False
+    )
+
+    embed.set_footer(text=f"Cleared by {interaction.user.name}")
+
+    # Delete user data AFTER creating the embed
+    del user_data[user.id]
+
+    await interaction.response.send_message(embed=embed)
     
 # =========================
 # READY
