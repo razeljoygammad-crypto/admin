@@ -67,6 +67,35 @@ def get_user(user_id):
     return user_data[user_id]
 
 # =========================
+# HELPERS
+# =========================
+def has_allowed_role(member: discord.Member):
+    return any(role.id in ALLOWED_ROLE_IDS for role in member.roles)
+
+def is_owner(user):
+    return user.id == OWNER_ID
+
+def get_user(user_id):
+    if user_id not in user_data:
+        user_data[user_id] = {
+            "total_uploads": 0,
+            "refunds": {
+            "mini": 0,
+            "small": 0,
+            "mediant": 0,
+            "vast": 0
+        },
+
+            "packs": {
+                "mini": 0,
+                "small": 0,
+                "mediant": 0,
+                "vast": 0
+            }
+        }
+    return user_data[user_id]
+
+# =========================
 # MODAL (FIXED)
 # =========================
 class CalcModal(discord.ui.Modal):
@@ -144,7 +173,7 @@ class CalcModal(discord.ui.Modal):
             inline=False
         )
 
-       # =========================
+        # =========================
         # FOOTER (DYNAMIC)
         # =========================
         if missing_xp > 0:
@@ -154,6 +183,50 @@ class CalcModal(discord.ui.Modal):
             
 
         await interaction.response.send_message(embed=embed)
+
+
+# =========================
+# REFUND FUNCTIONS
+# =========================
+async def refund_pack(interaction, pack):
+    data = get_user(interaction.user.id)
+
+    data["refunds"][pack] += 1
+
+    await interaction.response.send_message(
+        f"✅ {pack.capitalize()} refund recorded.",
+        ephemeral=True
+    )
+
+class RefundButtons(discord.ui.View):
+    def __init__(self, author):
+        super().__init__(timeout=60)
+        self.author = author
+
+    async def interaction_check(self, interaction):
+        if interaction.user != self.author:
+            await interaction.response.send_message(
+                "❌ This refund menu isn't yours.",
+                ephemeral=True
+            )
+            return False
+        return True
+
+    @discord.ui.button(label="Mini", style=discord.ButtonStyle.success)
+    async def refund_mini(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await refund_pack(interaction, "mini")
+
+    @discord.ui.button(label="Small", style=discord.ButtonStyle.success)
+    async def refund_small(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await refund_pack(interaction, "small")
+
+    @discord.ui.button(label="Mediant", style=discord.ButtonStyle.primary)
+    async def refund_mediant(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await refund_pack(interaction, "mediant")
+
+    @discord.ui.button(label="Vast", style=discord.ButtonStyle.danger)
+    async def refund_vast(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await refund_pack(interaction, "vast")
         
 # =========================
 # BUTTON VIEW
@@ -177,26 +250,62 @@ class ImageButtons(discord.ui.View):
     @discord.ui.button(label="Mini Pack", style=discord.ButtonStyle.success)
     async def mini_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         get_user(interaction.user.id)["packs"]["mini"] += 1
+
+        # Remove ALL buttons first
         await interaction.message.edit(view=None)
+
+        # Then open the modal
         await interaction.response.send_modal(CalcModal("mini"))
+
 
     @discord.ui.button(label="Small Pack", style=discord.ButtonStyle.success)
     async def small_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         get_user(interaction.user.id)["packs"]["small"] += 1
+
+        # Remove ALL buttons first
         await interaction.message.edit(view=None)
+
+        # Then open the modal
         await interaction.response.send_modal(CalcModal("small"))
 
+ 
     @discord.ui.button(label="Mediant Pack", style=discord.ButtonStyle.primary)
     async def mediant_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         get_user(interaction.user.id)["packs"]["mediant"] += 1
+
+        # Remove ALL buttons first
         await interaction.message.edit(view=None)
+
+        # Then open the modal
         await interaction.response.send_modal(CalcModal("mediant"))
 
     @discord.ui.button(label="Vast Pack", style=discord.ButtonStyle.danger)
     async def vast_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         get_user(interaction.user.id)["packs"]["vast"] += 1
+
+        # Remove ALL buttons first
         await interaction.message.edit(view=None)
+
+        # Then open the modal
         await interaction.response.send_modal(CalcModal("vast"))
+
+    @discord.ui.button(
+        label="🔄 Refund",
+        style=discord.ButtonStyle.secondary,
+        row=1
+    )
+    async def refund_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+
+        # Remove the main buttons
+        await interaction.message.edit(view=None)
+
+        # Open the refund menu
+        await interaction.response.send_message(
+            "Choose which pack to refund:",
+            view=RefundButtons(self.author),
+            ephemeral=True
+        )
+        
 
 # =========================
 # IMAGE DETECTION
@@ -267,7 +376,6 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
         "vast": 60
     }
 
-    # your emoji
     emoji = "<:dl:1495834832524021962>"
 
     target = interaction.user
@@ -289,6 +397,7 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
         )
 
     packs = data.get("packs", {})
+    refunds = data.get("refunds", {})
 
     earnings = sum(
         packs.get(p, 0) * PACK_PRICES[p]
@@ -303,12 +412,20 @@ async def status(interaction: discord.Interaction, user: discord.User = None):
     embed.add_field(
         name=target.name,
         value=(
-            f"💰 Earnings: {earnings} {emoji}\n"
-            f"📊 Total Uploads: {data.get('total_uploads', 0)}\n"
+            f"💰 **Earnings:** {earnings} {emoji}\n"
+            f"📊 **Total Uploads:** {data.get('total_uploads', 0)}\n\n"
+
+            f"📦 **Packs**\n"
             f"🚀 Mini: {packs.get('mini', 0)}\n"
             f"🌿 Small: {packs.get('small', 0)}\n"
             f"🔥 Mediant: {packs.get('mediant', 0)}\n"
-            f"👑 Vast: {packs.get('vast', 0)}"
+            f"👑 Vast: {packs.get('vast', 0)}\n\n"
+
+            f"🔄 **Refunds**\n"
+            f"🚀 Mini: {refunds.get('mini', 0)}\n"
+            f"🌿 Small: {refunds.get('small', 0)}\n"
+            f"🔥 Mediant: {refunds.get('mediant', 0)}\n"
+            f"👑 Vast: {refunds.get('vast', 0)}"
         ),
         inline=False
     )
