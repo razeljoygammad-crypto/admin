@@ -482,6 +482,7 @@ async def collect(interaction: discord.Interaction, user: discord.User):
     total_earnings = 0
     total_unclean = 0
     total_refunds = 0
+    total_refund_price = 0
 
     pack_lines = ""
     refund_lines = ""
@@ -547,6 +548,7 @@ async def collect(interaction: discord.Interaction, user: discord.User):
         value=(
             f"📦 Total Packs: `{total_clean}`\n"
             f"🔄 Total Refunds: `{total_refunds}`\n"
+            f"💸 Refund Value: `{total_refund_price} DL`\n"
             f"💰 Total Earnings: `{total_earnings}`\n"
             f"💵 Total Profit: `{total_profit}`\n"
             f"🧹 Total Unclean: `{total_unclean}`"
@@ -612,6 +614,7 @@ async def collectpro(interaction: discord.Interaction, user: discord.User):
     total_earnings = 0
     total_unclean = 0
     total_refunds = 0
+    total_refund_price = 0
 
     pack_lines = ""
     refund_lines = ""
@@ -620,11 +623,18 @@ async def collectpro(interaction: discord.Interaction, user: discord.User):
     # REFUND DETAILS
     # =========================
     for pack, count in refunds.items():
+        
         total_refunds += count
 
+        refund_price = PACK_PRICES.get(pack, 0)
+        refund_total = refund_price * count
+        
+        total_refund_price += refund_total
         if count > 0:
-            refund_lines += f"🔄 {pack.capitalize()} × {count}\n"
-
+            refund_lines += (
+                f"🔄 {pack.capitalize()} × {count}\n"
+                f" 💰 Refund Value: `{refund_total}` DL\n\n"
+            )
     # =========================
     # PACK DETAILS
     # =========================
@@ -677,6 +687,7 @@ async def collectpro(interaction: discord.Interaction, user: discord.User):
         value=(
             f"📦 Total Packs: `{total_clean}`\n"
             f"🔄 Total Refunds: `{total_refunds}`\n"
+            f"💸 Refund Value: `{total_refund_price} DL`\n"
             f"💰 Total Earnings: `{total_earnings}`\n"
             f"💵 Total Profit: `{total_profit}`\n"
             f"🧹 Total Unclean: `{total_unclean}`"
